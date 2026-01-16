@@ -7,6 +7,8 @@ import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
+import com.nchuy099.mini_instagram.common.exception.AppException;
+import com.nchuy099.mini_instagram.common.exception.ErrorCode;
 import com.nchuy099.mini_instagram.user.dto.request.CreateUserReq;
 
 @Slf4j
@@ -24,7 +26,7 @@ public class UserService {
 
         if (existingUser.isPresent()) {
             log.warn("Username {} is already taken", req.getUsername());
-            return "Username is already taken";
+            throw new AppException(ErrorCode.NOT_FOUND);
         }
 
         var newUser = this.userRepository.save(UserEntity.builder()
