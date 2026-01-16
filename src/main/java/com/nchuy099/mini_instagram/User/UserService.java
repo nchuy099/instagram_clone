@@ -37,7 +37,7 @@ public class UserService {
                 .phoneNumber(req.getPhoneNumber())
                 .dateOfBirth(req.getDateOfBirth())
                 .build());
-        return newUser.getId();
+        return newUser.getId().toString();
 
     }
 }

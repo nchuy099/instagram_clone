@@ -14,14 +14,17 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.boot.test.context.SpringBootTest;
 
+import com.jayway.jsonpath.internal.function.numeric.Min;
+import com.nchuy099.mini_instagram.MiniInstagramApplication;
 import com.nchuy099.mini_instagram.user.dto.request.CreateUserReq;
 
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @ExtendWith(MockitoExtension.class)
-class UserServiceTest {
+class UserServiceUnitTest {
 
     @Mock
     UserRepository userRepository;
@@ -42,7 +45,7 @@ class UserServiceTest {
                 .thenReturn(Optional.empty());
 
         UserEntity savedUser = new UserEntity();
-        savedUser.setId(UUID.randomUUID().toString());
+        savedUser.setId(UUID.randomUUID());
 
         when(userRepository.save(any()))
                 .thenReturn(savedUser);

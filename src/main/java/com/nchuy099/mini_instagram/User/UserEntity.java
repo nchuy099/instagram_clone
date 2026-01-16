@@ -21,7 +21,7 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 
 @Entity
-@Table(name = "User")
+@Table(name = "\"User\"")
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -39,6 +39,7 @@ public class UserEntity extends AbstractEntity {
     @Column(unique = true)
     String username;
 
+    @Column(name = "\"fullName\"")
     String fullName;
 
     String password;
@@ -46,13 +47,13 @@ public class UserEntity extends AbstractEntity {
     @Column(nullable = true)
     String biography;
 
-    @Column(nullable = true)
+    @Column(name = "\"dateOfBirth\"", nullable = true)
     LocalDate dateOfBirth;
 
     @Column(nullable = true)
     String gender;
 
-    @Column(nullable = true, length = 15)
+    @Column(name = "\"phoneNumber\"", nullable = true, length = 15)
     String phoneNumber;
 
 }
