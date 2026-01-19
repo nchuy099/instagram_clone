@@ -1,4 +1,7 @@
 spring:
+  output:
+    ansi:
+      enabled: ALWAYS
   datasource:
     url: jdbc:postgresql://localhost:5432/mini_instagram_db
     username: postgres
@@ -7,8 +10,19 @@ spring:
   jpa:
     hibernate:
       ddl-auto: none
-      naming:
-        physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+      # naming:
+      #   physical-strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+
+jwt:
+  access:
+    key: access-secret-key
+    expireMins: 60      
+  refresh:
+    key: refresh-secret-key
+    expireDays: 7     
+  reset:
+    key: reset-secret-key
+    expireMins: 15        
 
 logging:
   level:
