@@ -1,11 +1,14 @@
+server:
+  port: 8080
+
 spring:
   output:
     ansi:
       enabled: ALWAYS
   datasource:
-    url: jdbc:postgresql://localhost:5432/mini_instagram_db
-    username: postgres
-    password: password
+    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
 
   jpa:
     hibernate:
@@ -15,18 +18,25 @@ spring:
 
 jwt:
   access:
-    key: c2hhbGxoaWdoYm91bmRpZGVudGl0eWF1ZGllbmNlc29sYXJyZWNlaXZlcmV2aWV3aG8=
-    expireMins: 60      
+    key: ${JWT_ACCESS_SECRET_KEY}
+    expireMins: ${JWT_ACCESS_EXPIRES_MINS}      
   refresh:
-    key: YnJpbmdnaXZlbm5lZWRzbG91ZHJpZ2h0ZXZlbnRjZW50dXJ5c29tZWhvd2F1ZGllbmM=
-    expireDays: 7     
+    key: ${JWT_REFRESH_SECRET_KEY}
+    expireDays: ${JWT_REFRESH_EXPIRES_DAYS}
   reset:
-    key: bHVja3lwcm92ZWxpZnRzaGVsdGVyd2hlbmV2ZXJ0aGVyZWdpdmVubmV3c3BhcGVyYWQ=
-    expireMins: 15        
+    key: ${JWT_RESET_PASSWORD_SECRET_KEY}
+    expireMins: ${JWT_RESET_PASSWORD_EXPIRES_MINS}    
+
+send-mail-service:
+  url: ${SEND_RESET_PASS_MAIL_API_URL}
+
+frontend:
+  url: ${FRONTEND_URL}
+
 
 logging:
   level:
     root: INFO
     com.nchuy099.mini_instagram: DEBUG
-    org.hibernate.SQL: DEBUG
-    org.hibernate.orm.jdbc.bind: TRACE
+    # org.hibernate.SQL: DEBUG
+    # org.hibernate.orm.jdbc.bind: TRACE

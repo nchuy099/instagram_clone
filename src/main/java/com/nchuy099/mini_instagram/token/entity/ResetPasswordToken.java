@@ -1,6 +1,7 @@
 package com.nchuy099.mini_instagram.token.entity;
 
 import java.time.Instant;
+import java.util.UUID;
 
 import com.nchuy099.mini_instagram.common.AbstractEntity;
 import com.nchuy099.mini_instagram.user.UserEntity;
@@ -31,8 +32,8 @@ import lombok.extern.slf4j.Slf4j;
 @FieldDefaults(level = AccessLevel.PRIVATE)
 public class ResetPasswordToken extends AbstractEntity {
 
-    @Column(nullable = false)
-    String token;
+    @Column(nullable = false, unique = true)
+    UUID jti;
 
     @Column(nullable = false)
     String email;

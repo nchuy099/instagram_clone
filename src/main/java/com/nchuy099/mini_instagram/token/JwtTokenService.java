@@ -4,6 +4,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -44,14 +45,14 @@ public class JwtTokenService {
     @Value("${jwt.reset.expireMins}")
     private long resetExpireMins;
 
-    public TokenResult generate(TokenType type, Instant issuedAt, String subject) {
+    public TokenResult generate(TokenType type, Instant issuedAt, String subject, UUID jti) {
 
         Instant expiresAt = switch (type) {
             case ACCESS -> issuedAt.plus(accessExpireMins, ChronoUnit.MINUTES);
             case REFRESH -> issuedAt.plus(refreshExpireDays, ChronoUnit.DAYS);
             case RESET_PASSWORD -> issuedAt.plus(resetExpireMins, ChronoUnit.MINUTES);
         };
-        String token = generateToken(subject, expiresAt, type);
+        String token = generateToken(subject, jti, expiresAt, type);
 
         return TokenResult.builder()
                 .type(type)
@@ -92,7 +93,7 @@ public class JwtTokenService {
         }
     }
 
-    private String generateToken(String sub, Instant expiresAt, TokenType type) {
+    private String generateToken(String sub, UUID jti, Instant expiresAt, TokenType type) {
         log.info("Generating {} token for subject: {}", type, sub);
         try {
             // 1️⃣ Header
@@ -107,6 +108,7 @@ public class JwtTokenService {
                     .subject(sub)
                     .issueTime(issuedAt)
                     .expirationTime(expiration)
+                    .jwtID(jti.toString())
                     .claim("token_type", type.name())
                     .build();
 

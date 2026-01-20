@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.util.Optional;
 
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.nchuy099.mini_instagram.common.exception.AppException;
@@ -17,6 +18,7 @@ import com.nchuy099.mini_instagram.user.dto.request.CreateUserReq;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public String create(CreateUserReq req) {
         log.info("Creating user with email: {}", req.getEmail());
@@ -33,7 +35,7 @@ public class UserService {
                 .email(req.getEmail())
                 .username(req.getUsername())
                 .fullName(req.getFullName())
-                .password(req.getPassword())
+                .password(passwordEncoder.encode(req.getPassword()))
                 .biography(req.getBiography())
                 .gender(req.getGender())
                 .phoneNumber(req.getPhoneNumber())

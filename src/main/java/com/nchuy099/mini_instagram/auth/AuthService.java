@@ -1,9 +1,16 @@
 package com.nchuy099.mini_instagram.auth;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import com.nchuy099.mini_instagram.auth.dto.request.LoginReq;
 import com.nchuy099.mini_instagram.auth.dto.response.LoginResp;
@@ -17,17 +24,29 @@ import com.nchuy099.mini_instagram.token.repository.RefreshTokenRepository;
 import com.nchuy099.mini_instagram.user.UserEntity;
 import com.nchuy099.mini_instagram.user.UserRepository;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Mono;
 
 @Service
 @Slf4j
 @RequiredArgsConstructor
 public class AuthService {
 
+    @Value("${send-mail-service.url}")
+    private String SEND_RESET_PASSWORD_EMAIL_URL;
+
+    @Value("${frontend.url}")
+    private String FRONTEND_URL;
+
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtTokenService jwtTokenService;
+    private final PasswordEncoder passwordEncoder;
 
     public LoginResp login(LoginReq req) {
         log.info("Login request received for identifier: {}", req.getIdentifier());
@@ -39,15 +58,21 @@ public class AuthService {
             throw new AppException(ErrorCode.UNAUTHORIZED, "Email/Username or password is incorrect");
         }
 
+        if (!passwordEncoder.matches(req.getPassword(), existingUser.get().getPassword())) {
+            log.warn("Invalid password for user: {}", req.getIdentifier());
+            throw new AppException(ErrorCode.UNAUTHORIZED, "Email/Username or password is incorrect");
+        }
+
         UserEntity user = existingUser.get();
         String userId = user.getId().toString();
         Instant issuedAt = Instant.now();
         // create tokens
-        TokenResult accessToken = jwtTokenService.generate(TokenType.ACCESS, issuedAt, userId);
-        TokenResult refreshToken = jwtTokenService.generate(TokenType.REFRESH, issuedAt, userId);
+        TokenResult accessToken = jwtTokenService.generate(TokenType.ACCESS, issuedAt, userId, UUID.randomUUID());
+        UUID refreshJti = UUID.randomUUID();
+        TokenResult refreshToken = jwtTokenService.generate(TokenType.REFRESH, issuedAt, userId, refreshJti);
 
         RefreshToken rftEntity = RefreshToken.builder()
-                .token(refreshToken.getToken())
+                .jti(refreshJti)
                 .user(user)
                 .expiresAt(refreshToken.getExpiresAt())
                 .build();
@@ -62,5 +87,93 @@ public class AuthService {
                 .refreshToken(refreshToken.getToken())
                 .build();
 
+    }
+
+    public void forgotPassword(String identifier) {
+        log.info("Forgot password request received for identifier: {}", identifier);
+
+        Optional<UserEntity> existingUser = userRepository.findByUsernameOrEmail(identifier, identifier);
+        if (existingUser.isEmpty()) {
+            log.warn("No user found with identifier: {}", identifier);
+            throw new AppException(ErrorCode.NOT_FOUND, "User not found");
+        }
+
+        TokenResult resetToken = jwtTokenService.generate(TokenType.RESET_PASSWORD, Instant.now(),
+                existingUser.get().getId().toString(), UUID.randomUUID());
+
+        sendResetPasswordEmail(existingUser.get().getEmail(), existingUser.get().getUsername(), resetToken.getToken());
+        // create token
+        // send email
+
+    }
+
+    public void sendResetPasswordEmail(String email, String username, String token) {
+        log.info("Sending reset password email to: {}", email);
+        try {
+            WebClient webClient = WebClient.create();
+
+            ResetPasswordMailResponse response = webClient.post()
+                    .uri(SEND_RESET_PASSWORD_EMAIL_URL)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .bodyValue(new ResetPasswordMailReq(
+                            email,
+                            username,
+                            token,
+                            FRONTEND_URL))
+                    .retrieve()
+
+                    // ❗ HTTP status != 2xx
+                    .onStatus(HttpStatusCode::isError, resp -> resp.bodyToMono(String.class)
+                            .flatMap(body -> {
+                                log.error("Reset password email API ERROR body: {}", body);
+                                return Mono.error(
+                                        new RuntimeException("Reset password email API failed: " + body));
+                            }))
+
+                    .bodyToMono(ResetPasswordMailResponse.class)
+                    .timeout(Duration.ofSeconds(5))
+                    .block();
+
+            log.info("Reset password email API response: {}", response.getMessage());
+
+            // ❗ Business error (success = false)
+            if (response == null || !response.isSuccess()) {
+                log.error("Failed to send reset password email. Response: {}", response.getError());
+                throw new RuntimeException("Failed to send reset password email: " + response.getError());
+            }
+
+        } catch (Exception ex) {
+            log.error("Error calling reset password email API", ex);
+            throw new RuntimeException("Internal server error while sending reset password email", ex);
+        }
+
+    }
+
+    @Getter
+    @Setter
+    @AllArgsConstructor
+    class ResetPasswordMailReq {
+        String email;
+        String username;
+        String token;
+        String frontendUrl;
+    }
+
+    @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    static class ResetPasswordMailResponse {
+        boolean success;
+        int code;
+        String message;
+
+        ResetPasswordMailResponse(boolean success, int code, String message) {
+            this.success = success;
+            this.code = code;
+            this.message = message;
+        }
+
+        String error;
     }
 }
