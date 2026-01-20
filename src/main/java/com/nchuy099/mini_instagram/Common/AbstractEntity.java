@@ -27,11 +27,9 @@ public class AbstractEntity {
     UUID id;
 
     @CreationTimestamp
-    @Column(name = "\"createdAt\"")
     Instant createdAt;
 
     @UpdateTimestamp
-    @Column(name = "\"updatedAt\"")
     Instant updatedAt;
 
 }

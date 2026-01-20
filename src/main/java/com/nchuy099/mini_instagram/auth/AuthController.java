@@ -6,7 +6,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.nchuy099.mini_instagram.auth.dto.request.LoginReq;
 import com.nchuy099.mini_instagram.auth.dto.request.SignUpReq;
+import com.nchuy099.mini_instagram.auth.dto.response.LoginResp;
 import com.nchuy099.mini_instagram.user.UserService;
 import com.nchuy099.mini_instagram.user.dto.request.CreateUserReq;
 
@@ -21,6 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 public class AuthController {
 
     private final UserService userService;
+    private final AuthService authService;
 
     @PostMapping("/sign-up")
     public String signUp(@Valid @RequestBody SignUpReq req) {
@@ -35,5 +38,11 @@ public class AuthController {
 
         return userService.create(createUserReq);
 
+    }
+
+    @PostMapping("/login")
+    public LoginResp login(@RequestBody LoginReq req) {
+        log.info("Login request received: {}", req.getIdentifier());
+        return authService.login(req);
     }
 }

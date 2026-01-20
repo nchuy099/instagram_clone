@@ -8,6 +8,7 @@ import javax.crypto.spec.SecretKeySpec;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -33,18 +34,63 @@ public class SecurityConfig {
     private final RestAuthenticationEntryPoint authenticationEntryPoint;
     private final RestAccessDeniedHandler accessDeniedHandler;
 
-    private static final String[] PUBLIC_ENDPOINTS = {
-            "/auth/**",
+    private static final String[] SWAGGER_ENDPOINTS = {
             "/v3/api-docs/**",
             "/swagger-ui/**",
             "/swagger-ui.html",
             "/swagger-resources/**",
-            "/webjars/**",
-            "/favicon.ico"
+            "/webjars/**"
     };
 
+    private static final String[] PUBLIC_ENDPOINTS = {
+            "/auth/sign-up",
+            "/auth/login",
+            "/auth/refresh-token",
+            "/auth/forgot-password",
+    };
+
+    private final CustomJwtDecoder customJwtDecoder;
+
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    @Order(1)
+    public SecurityFilterChain swaggerSecurityChain(HttpSecurity http) throws Exception {
+        http
+                .securityMatcher(
+                        SWAGGER_ENDPOINTS)
+                .csrf(csrf -> csrf.disable())
+                .oauth2ResourceServer(oauth2 -> oauth2.disable()) // DISABLE OAUTH2 RESOURCE SERVER
+
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+
+        ;
+
+        return http.build();
+    }
+
+    @Bean
+    @Order(2)
+    public SecurityFilterChain publicApiChain(HttpSecurity http) throws Exception {
+        http
+                .securityMatcher(
+                        PUBLIC_ENDPOINTS)
+                // CORS
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                // API → tắt CSRF
+                .csrf(csrf -> csrf.disable())
+
+                // Stateless (JWT)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+                .oauth2ResourceServer(oauth2 -> oauth2.disable()) // DISABLE OAUTH2 RESOURCE SERVER
+
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
+
+        return http.build();
+    }
+
+    @Bean
+    @Order(3)
+    public SecurityFilterChain apiSecurityFilterChain(HttpSecurity http) throws Exception {
 
         http
                 // CORS
@@ -57,7 +103,7 @@ public class SecurityConfig {
 
                 // OAuth2 Resource Server
                 .oauth2ResourceServer(oauth2 -> oauth2
-                        .jwt(jwt -> jwt.decoder(null)
+                        .jwt(jwt -> jwt.decoder(customJwtDecoder)
                         // .jwtAuthenticationConverter(jwtAuthenticationConverter())
                         )
                         .authenticationEntryPoint(authenticationEntryPoint)
@@ -65,7 +111,7 @@ public class SecurityConfig {
 
                 // Authorization
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
+                        // .requestMatchers(PUBLIC_ENDPOINTS).permitAll() // Đã tách ở trên
                         .anyRequest().authenticated());
 
         return http.build();

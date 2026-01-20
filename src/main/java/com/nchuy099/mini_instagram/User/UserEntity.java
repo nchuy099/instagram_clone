@@ -1,12 +1,17 @@
 package com.nchuy099.mini_instagram.user;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import com.nchuy099.mini_instagram.common.AbstractEntity;
+import com.nchuy099.mini_instagram.token.entity.RefreshToken;
+import com.nchuy099.mini_instagram.token.entity.ResetPasswordToken;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
@@ -55,4 +60,9 @@ public class UserEntity extends AbstractEntity {
     @Column(nullable = true, length = 15)
     String phoneNumber;
 
+    @OneToMany(mappedBy = "user")
+    private List<RefreshToken> refreshTokens = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user")
+    private List<ResetPasswordToken> resetPasswordTokens = new ArrayList<>();
 }

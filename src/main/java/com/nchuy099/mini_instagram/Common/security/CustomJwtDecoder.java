@@ -11,10 +11,10 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.stereotype.Component;
 
-import com.nchuy099.mini_instagram.auth.JwtService;
 import com.nchuy099.mini_instagram.common.enums.TokenType;
 import com.nchuy099.mini_instagram.common.exception.AppException;
 import com.nchuy099.mini_instagram.common.exception.ErrorCode;
+import com.nchuy099.mini_instagram.token.JwtTokenService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,7 +29,7 @@ public class CustomJwtDecoder implements JwtDecoder {
 
     NimbusJwtDecoder nimbusJwtDecoder = null;
 
-    private final JwtService jwtService;
+    private final JwtTokenService jwtService;
 
     @Override
     public Jwt decode(String token) {

@@ -1,12 +1,15 @@
-package com.nchuy099.mini_instagram.auth;
+package com.nchuy099.mini_instagram.token;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import com.nchuy099.mini_instagram.common.enums.TokenType;
+import com.nchuy099.mini_instagram.token.dto.TokenResult;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
@@ -21,7 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
-public class JwtService {
+public class JwtTokenService {
 
     @Value("${jwt.access.key}")
     private String accessKey;
@@ -41,13 +44,20 @@ public class JwtService {
     @Value("${jwt.reset.expireMins}")
     private long resetExpireMins;
 
-    public String generate(TokenType type, String subject) {
+    public TokenResult generate(TokenType type, Instant issuedAt, String subject) {
 
-        return switch (type) {
-            case ACCESS -> generateToken(subject, accessKey, accessExpireMins * 60 * 1000, type);
-            case REFRESH -> generateToken(subject, refreshKey, refreshExpireDays * 24 * 60 * 60 * 1000, type);
-            case RESET_PASSWORD -> generateToken(subject, resetKey, resetExpireMins * 60 * 1000, type);
+        Instant expiresAt = switch (type) {
+            case ACCESS -> issuedAt.plus(accessExpireMins, ChronoUnit.MINUTES);
+            case REFRESH -> issuedAt.plus(refreshExpireDays, ChronoUnit.DAYS);
+            case RESET_PASSWORD -> issuedAt.plus(resetExpireMins, ChronoUnit.MINUTES);
         };
+        String token = generateToken(subject, expiresAt, type);
+
+        return TokenResult.builder()
+                .type(type)
+                .token(token)
+                .expiresAt(expiresAt)
+                .build();
     }
 
     public boolean validate(String token, TokenType expectedType) {
@@ -63,6 +73,15 @@ public class JwtService {
                 return false;
             }
 
+            Instant exp = jwt.getJWTClaimsSet()
+                    .getExpirationTime()
+                    .toInstant();
+
+            if (Instant.now().isAfter(exp)) {
+                log.warn("Token expired");
+                return false;
+            }
+
             // verify signature
             MACVerifier verifier = new MACVerifier(getKey(expectedType));
             return jwt.verify(verifier);
@@ -73,7 +92,7 @@ public class JwtService {
         }
     }
 
-    private String generateToken(String sub, String key, long expireMillis, TokenType type) {
+    private String generateToken(String sub, Instant expiresAt, TokenType type) {
         log.info("Generating {} token for subject: {}", type, sub);
         try {
             // 1️⃣ Header
@@ -81,8 +100,7 @@ public class JwtService {
 
             // 2️⃣ Time
             Date issuedAt = new Date();
-            Date expiration = new Date(
-                    issuedAt.getTime() + expireMillis);
+            Date expiration = Date.from(expiresAt);
 
             // 3️⃣ Claims
             JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
@@ -99,14 +117,15 @@ public class JwtService {
             JWSObject jwsObject = new JWSObject(header, payload);
 
             // 6️⃣ Sign
-            jwsObject.sign(new MACSigner(key.getBytes(StandardCharsets.UTF_8)));
+            String key = getKey(type);
+            jwsObject.sign(new MACSigner(key.getBytes()));
 
             // 7️⃣ Serialize
             return jwsObject.serialize();
 
         } catch (JOSEException e) {
             log.error("Failed to generate JWT: {}", e.getMessage());
-            throw new RuntimeException("Failed to generate JWT", e);
+            throw new RuntimeException("Failed to generate JWT: " + e.getMessage(), e);
         }
     }
 

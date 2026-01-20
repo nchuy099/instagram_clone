@@ -15,13 +15,13 @@ spring:
 
 jwt:
   access:
-    key: access-secret-key
+    key: c2hhbGxoaWdoYm91bmRpZGVudGl0eWF1ZGllbmNlc29sYXJyZWNlaXZlcmV2aWV3aG8=
     expireMins: 60      
   refresh:
-    key: refresh-secret-key
+    key: YnJpbmdnaXZlbm5lZWRzbG91ZHJpZ2h0ZXZlbnRjZW50dXJ5c29tZWhvd2F1ZGllbmM=
     expireDays: 7     
   reset:
-    key: reset-secret-key
+    key: bHVja3lwcm92ZWxpZnRzaGVsdGVyd2hlbmV2ZXJ0aGVyZWdpdmVubmV3c3BhcGVyYWQ=
     expireMins: 15        
 
 logging:
