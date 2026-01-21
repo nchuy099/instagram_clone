@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.nchuy099.mini_instagram.auth.dto.request.ForgotPasswordReq;
 import com.nchuy099.mini_instagram.auth.dto.request.LoginReq;
 import com.nchuy099.mini_instagram.auth.dto.request.LogoutReq;
+import com.nchuy099.mini_instagram.auth.dto.request.ResetPasswordReq;
 import com.nchuy099.mini_instagram.auth.dto.request.SignUpReq;
 import com.nchuy099.mini_instagram.auth.dto.response.LoginResp;
 import com.nchuy099.mini_instagram.auth.dto.response.RefreshTokenResp;
@@ -73,4 +74,12 @@ public class AuthController {
         authService.logout(refreshToken);
         return "Logout successful";
     }
+
+    @PostMapping("/reset-password")
+    public String resetPassword(@RequestBody ResetPasswordReq req) {
+        log.info("Reset password request received");
+        authService.resetPassword(req);
+        return "Reset password successful";
+    }
+
 }

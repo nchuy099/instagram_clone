@@ -9,8 +9,10 @@ import java.util.UUID;
 import javax.crypto.spec.SecretKeySpec;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.security.SecurityProperties.User;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -22,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import com.nchuy099.mini_instagram.auth.dto.request.LoginReq;
+import com.nchuy099.mini_instagram.auth.dto.request.ResetPasswordReq;
 import com.nchuy099.mini_instagram.auth.dto.response.LoginResp;
 import com.nchuy099.mini_instagram.auth.dto.response.RefreshTokenResp;
 import com.nchuy099.mini_instagram.common.enums.TokenType;
@@ -31,11 +34,15 @@ import com.nchuy099.mini_instagram.token.JwtTokenService;
 import com.nchuy099.mini_instagram.token.dto.TokenResult;
 import com.nchuy099.mini_instagram.token.entity.BlackListToken;
 import com.nchuy099.mini_instagram.token.entity.RefreshToken;
+import com.nchuy099.mini_instagram.token.entity.ResetPasswordToken;
 import com.nchuy099.mini_instagram.token.repository.BlackListTokenRepository;
 import com.nchuy099.mini_instagram.token.repository.RefreshTokenRepository;
+import com.nchuy099.mini_instagram.token.repository.ResetPasswordTokenRepository;
 import com.nchuy099.mini_instagram.user.UserEntity;
 import com.nchuy099.mini_instagram.user.UserRepository;
 
+import io.netty.resolver.DefaultAddressResolverGroup;
+import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -43,6 +50,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
+import reactor.netty.http.client.HttpClient;
 
 @Service
 @Slf4j
@@ -58,6 +66,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final BlackListTokenRepository blackListTokenRepository;
+    private final ResetPasswordTokenRepository resetPasswordTokenRepository;
     private final JwtTokenService jwtTokenService;
     private final PasswordEncoder passwordEncoder;
 
@@ -111,21 +120,38 @@ public class AuthService {
             throw new AppException(ErrorCode.NOT_FOUND, "User not found");
         }
 
-        TokenResult resetToken = jwtTokenService.generate(TokenType.RESET_PASSWORD, Instant.now(),
-                existingUser.get().getId().toString(), UUID.randomUUID());
-
-        sendResetPasswordEmail(existingUser.get().getEmail(), existingUser.get().getUsername(), resetToken.getToken());
         // create token
+        UUID resetJti = UUID.randomUUID();
+        TokenResult resetToken = jwtTokenService.generate(TokenType.RESET_PASSWORD, Instant.now(),
+                existingUser.get().getId().toString(), resetJti);
+
+        ResetPasswordToken rptEntity = ResetPasswordToken.builder()
+                .jti(resetJti)
+                .email(existingUser.get().getEmail())
+                .user(existingUser.get())
+                .expiresAt(resetToken.getExpiresAt())
+                .build();
+
+        resetPasswordTokenRepository.save(rptEntity);
+
         // send email
+        sendResetPasswordEmail(existingUser.get().getEmail(), existingUser.get().getUsername(), resetToken.getToken());
 
     }
 
+    @Transactional
     public RefreshTokenResp refreshToken(String refreshToken) {
         log.info("Refresh token request received");
 
         // revoke old refresh token
         Jwt refreshJwt = jwtTokenService.decodeToken(TokenType.REFRESH, refreshToken);
         UUID refreshJti = UUID.fromString(refreshJwt.getClaimAsString("jti"));
+
+        Optional<UserEntity> userOpt = userRepository.findById(UUID.fromString(refreshJwt.getSubject()));
+        if (userOpt.isEmpty()) {
+            log.warn("User not found for ID: {}", refreshJwt.getSubject());
+            throw new AppException(ErrorCode.NOT_FOUND, "User not found");
+        }
 
         Optional<RefreshToken> existingRft = refreshTokenRepository.findByJti(refreshJti);
         if (existingRft.isEmpty()) {
@@ -157,6 +183,7 @@ public class AuthService {
                 .build();
     }
 
+    @Transactional
     public void logout(String refreshToken) {
         log.info("Logout request received");
 
@@ -189,10 +216,51 @@ public class AuthService {
 
     }
 
+    @Transactional
+    public void resetPassword(ResetPasswordReq req) {
+        log.info("Reset password request received");
+
+        Jwt resetJwt = jwtTokenService.decodeToken(TokenType.RESET_PASSWORD, req.getToken());
+
+        Optional<ResetPasswordToken> rptOpt = resetPasswordTokenRepository
+                .findByJti(UUID.fromString(resetJwt.getClaimAsString("jti")));
+
+        if (rptOpt.isEmpty()) {
+            log.warn("Reset password token not found in database");
+            throw new AppException(ErrorCode.UNAUTHORIZED, "Invalid reset password token: not found");
+        }
+
+        ResetPasswordToken rpt = rptOpt.get();
+        if (rpt.isUsed()) {
+            log.warn("Reset password token has already been used");
+            throw new AppException(ErrorCode.CONFLICT, "Reset password token has already been used");
+        }
+        rpt.setUsed(true);
+        resetPasswordTokenRepository.save(rpt);
+
+        UUID userId = UUID.fromString(resetJwt.getSubject());
+
+        Optional<UserEntity> userOpt = userRepository.findById(userId);
+        if (userOpt.isEmpty()) {
+            log.warn("User not found for ID: {}", userId);
+            throw new AppException(ErrorCode.NOT_FOUND, "User not found");
+        }
+
+        UserEntity user = userOpt.get();
+        user.setPassword(passwordEncoder.encode(req.getNewPassword()));
+        userRepository.save(user);
+    }
+
     public void sendResetPasswordEmail(String email, String username, String token) {
         log.info("Sending reset password email to: {}", email);
         try {
-            WebClient webClient = WebClient.create();
+            // Force to use OS's DNS
+            HttpClient httpClient = HttpClient.create()
+                    .resolver(DefaultAddressResolverGroup.INSTANCE);
+
+            WebClient webClient = WebClient.builder()
+                    .clientConnector(new ReactorClientHttpConnector(httpClient))
+                    .build();
 
             ResetPasswordMailResponse response = webClient.post()
                     .uri(SEND_RESET_PASSWORD_EMAIL_URL)
@@ -213,7 +281,7 @@ public class AuthService {
                             }))
 
                     .bodyToMono(ResetPasswordMailResponse.class)
-                    .timeout(Duration.ofSeconds(5))
+                    .timeout(Duration.ofSeconds(30))
                     .block();
 
             log.info("Reset password email API response: {}", response.getMessage());

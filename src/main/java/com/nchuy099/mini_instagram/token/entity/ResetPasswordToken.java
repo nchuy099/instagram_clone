@@ -21,7 +21,7 @@ import lombok.Setter;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 
-@Table(name = "password_reset")
+@Table(name = "password_resets")
 @Entity
 @Slf4j
 @NoArgsConstructor
@@ -37,6 +37,10 @@ public class ResetPasswordToken extends AbstractEntity {
 
     @Column(nullable = false)
     String email;
+
+    @Column(nullable = false)
+    @Builder.Default
+    boolean used = false;
 
     @Column(nullable = false)
     Instant expiresAt;
