@@ -1,6 +1,8 @@
 package com.nchuy099.mini_instagram.common.security;
 
 import java.util.Objects;
+import java.util.Optional;
+import java.util.UUID;
 
 import javax.crypto.spec.SecretKeySpec;
 
@@ -15,6 +17,8 @@ import com.nchuy099.mini_instagram.common.enums.TokenType;
 import com.nchuy099.mini_instagram.common.exception.AppException;
 import com.nchuy099.mini_instagram.common.exception.ErrorCode;
 import com.nchuy099.mini_instagram.token.JwtTokenService;
+import com.nchuy099.mini_instagram.token.entity.BlackListToken;
+import com.nchuy099.mini_instagram.token.repository.BlackListTokenRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,24 +34,17 @@ public class CustomJwtDecoder implements JwtDecoder {
     NimbusJwtDecoder nimbusJwtDecoder = null;
 
     private final JwtTokenService jwtService;
+    private final BlackListTokenRepository blackListTokenRepository;
 
     @Override
     public Jwt decode(String token) {
-        log.info("Decoding token: {}", token);
-
-        var res = jwtService.validate(token, TokenType.ACCESS);
-        if (!res) {
-            log.error("Invalid JWT token");
-            throw new AppException(ErrorCode.UNAUTHORIZED, "Invalid JWT token");
+        Jwt jwt = jwtService.decodeToken(TokenType.ACCESS, token);
+        UUID jti = UUID.fromString(jwt.getClaimAsString("jti"));
+        Optional<BlackListToken> blackListOpt = blackListTokenRepository.findByJti(jti);
+        if (blackListOpt.isPresent()) {
+            log.info("Token is blacklisted: {}", jti);
+            throw new AppException(ErrorCode.UNAUTHORIZED, "Token is blacklisted");
         }
-
-        if (Objects.isNull(nimbusJwtDecoder)) {
-            SecretKeySpec secretKeySpec = new SecretKeySpec(accessKey.getBytes(), "HmacSHA256");
-            nimbusJwtDecoder = NimbusJwtDecoder.withSecretKey(secretKeySpec)
-                    .macAlgorithm(MacAlgorithm.HS256)
-                    .build();
-        }
-
-        return nimbusJwtDecoder.decode(token);
+        return jwt;
     }
 }

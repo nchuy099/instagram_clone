@@ -3,6 +3,7 @@ package com.nchuy099.mini_instagram.auth;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -10,6 +11,7 @@ import com.nchuy099.mini_instagram.auth.dto.request.ForgotPasswordReq;
 import com.nchuy099.mini_instagram.auth.dto.request.LoginReq;
 import com.nchuy099.mini_instagram.auth.dto.request.SignUpReq;
 import com.nchuy099.mini_instagram.auth.dto.response.LoginResp;
+import com.nchuy099.mini_instagram.auth.dto.response.RefreshTokenResp;
 import com.nchuy099.mini_instagram.auth.dto.response.SignUpResp;
 import com.nchuy099.mini_instagram.user.UserService;
 import com.nchuy099.mini_instagram.user.dto.request.CreateUserReq;
@@ -54,5 +56,12 @@ public class AuthController {
         log.info("Forgot password request received");
         authService.forgotPassword(req.getIdentifier());
         return "Reset password link has been sent to your email";
+    }
+
+    @PostMapping("/refresh-token")
+    public RefreshTokenResp refreshToken(@RequestHeader("Authorization") String authorization) {
+        log.info("Refresh token request received");
+        String refreshToken = authorization.replace("Bearer ", "");
+        return authService.refreshToken(refreshToken);
     }
 }

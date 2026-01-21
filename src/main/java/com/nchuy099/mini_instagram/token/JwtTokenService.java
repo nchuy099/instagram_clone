@@ -4,13 +4,24 @@ import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
+import javax.crypto.spec.SecretKeySpec;
+
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.stereotype.Service;
 
 import com.nchuy099.mini_instagram.common.enums.TokenType;
+import com.nchuy099.mini_instagram.common.exception.AppException;
+import com.nchuy099.mini_instagram.common.exception.ErrorCode;
 import com.nchuy099.mini_instagram.token.dto.TokenResult;
+import com.nchuy099.mini_instagram.user.UserEntity;
+import com.nchuy099.mini_instagram.user.UserRepository;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
@@ -21,10 +32,12 @@ import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class JwtTokenService {
 
     @Value("${jwt.access.key}")
@@ -45,6 +58,10 @@ public class JwtTokenService {
     @Value("${jwt.reset.expireMins}")
     private long resetExpireMins;
 
+    NimbusJwtDecoder nimbusJwtDecoder = null;
+
+    private final UserRepository userRepository;
+
     public TokenResult generate(TokenType type, Instant issuedAt, String subject, UUID jti) {
 
         Instant expiresAt = switch (type) {
@@ -61,10 +78,38 @@ public class JwtTokenService {
                 .build();
     }
 
+    public Jwt decodeToken(TokenType type, String token) {
+        log.info("Decoding {} token", type);
+
+        var res = validate(token, type);
+        if (!res) {
+            log.error("Invalid JWT token");
+            throw new AppException(ErrorCode.UNAUTHORIZED, "Invalid JWT token");
+        }
+
+        if (Objects.isNull(nimbusJwtDecoder)) {
+            SecretKeySpec secretKeySpec = new SecretKeySpec(getKey(type).getBytes(), "HmacSHA256");
+            nimbusJwtDecoder = NimbusJwtDecoder.withSecretKey(secretKeySpec)
+                    .macAlgorithm(MacAlgorithm.HS256)
+                    .build();
+        }
+
+        return nimbusJwtDecoder.decode(token);
+    }
+
     public boolean validate(String token, TokenType expectedType) {
         log.info("Validating {} token: {}", expectedType, token);
         try {
             SignedJWT jwt = SignedJWT.parse(token);
+
+            UUID userId = UUID.fromString(jwt.getJWTClaimsSet()
+                    .getSubject());
+
+            Optional<UserEntity> userOpt = userRepository.findById(userId);
+            if (userOpt.isEmpty()) {
+                log.warn("User not found for ID: {}", userId);
+                return false;
+            }
 
             String tokenType = jwt.getJWTClaimsSet()
                     .getStringClaim("token_type");

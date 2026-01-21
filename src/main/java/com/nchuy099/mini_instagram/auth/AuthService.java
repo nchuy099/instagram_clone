@@ -2,24 +2,36 @@ package com.nchuy099.mini_instagram.auth;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+
+import javax.crypto.spec.SecretKeySpec;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import com.nchuy099.mini_instagram.auth.dto.request.LoginReq;
 import com.nchuy099.mini_instagram.auth.dto.response.LoginResp;
+import com.nchuy099.mini_instagram.auth.dto.response.RefreshTokenResp;
 import com.nchuy099.mini_instagram.common.enums.TokenType;
 import com.nchuy099.mini_instagram.common.exception.AppException;
 import com.nchuy099.mini_instagram.common.exception.ErrorCode;
 import com.nchuy099.mini_instagram.token.JwtTokenService;
 import com.nchuy099.mini_instagram.token.dto.TokenResult;
+import com.nchuy099.mini_instagram.token.entity.BlackListToken;
 import com.nchuy099.mini_instagram.token.entity.RefreshToken;
+import com.nchuy099.mini_instagram.token.repository.BlackListTokenRepository;
 import com.nchuy099.mini_instagram.token.repository.RefreshTokenRepository;
 import com.nchuy099.mini_instagram.user.UserEntity;
 import com.nchuy099.mini_instagram.user.UserRepository;
@@ -45,6 +57,7 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final BlackListTokenRepository blackListTokenRepository;
     private final JwtTokenService jwtTokenService;
     private final PasswordEncoder passwordEncoder;
 
@@ -105,6 +118,57 @@ public class AuthService {
         // create token
         // send email
 
+    }
+
+    public RefreshTokenResp refreshToken(String refreshToken) {
+        log.info("Refresh token request received");
+
+        // revoke old refresh token
+        Jwt refreshJwt = jwtTokenService.decodeToken(TokenType.REFRESH, refreshToken);
+        UUID refreshJti = UUID.fromString(refreshJwt.getClaimAsString("jti"));
+
+        Optional<RefreshToken> existingRft = refreshTokenRepository.findByJti(refreshJti);
+        if (existingRft.isEmpty()) {
+            log.info("Refresh token not found in database");
+            throw new AppException(ErrorCode.UNAUTHORIZED, "Invalid refresh token");
+        }
+
+        existingRft.get().setRevoked(true);
+        refreshTokenRepository.save(existingRft.get());
+
+        // blacklist old access token
+        // Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        // Jwt accessJwt = ((JwtAuthenticationToken) auth).getToken();
+
+        // UUID accessJti = UUID.fromString(accessJwt.getClaimAsString("jti"));
+
+        // BlackListToken blackListToken = BlackListToken.builder()
+        // .jti(accessJti)
+        // .expiresAt(accessJwt.getExpiresAt())
+        // .build();
+
+        // blackListTokenRepository.save(blackListToken);
+
+        // generate new tokens
+        var newAccessToken = jwtTokenService.generate(TokenType.ACCESS, Instant.now(),
+                refreshJwt.getSubject(), UUID.randomUUID()).getToken();
+
+        UUID newRefreshJti = UUID.randomUUID();
+        TokenResult newRefreshToken = jwtTokenService.generate(TokenType.REFRESH, Instant.now(),
+                refreshJwt.getSubject(), newRefreshJti);
+
+        RefreshToken newRftEntity = RefreshToken.builder()
+                .jti(newRefreshJti)
+                .user(existingRft.get().getUser())
+                .expiresAt(newRefreshToken.getExpiresAt())
+                .build();
+        refreshTokenRepository.save(newRftEntity);
+
+        return RefreshTokenResp.builder()
+                .accessToken(newAccessToken)
+                .refreshToken(newRefreshToken.getToken())
+                .build();
     }
 
     public void sendResetPasswordEmail(String email, String username, String token) {
