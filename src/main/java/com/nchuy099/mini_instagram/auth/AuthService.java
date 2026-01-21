@@ -136,20 +136,6 @@ public class AuthService {
         existingRft.get().setRevoked(true);
         refreshTokenRepository.save(existingRft.get());
 
-        // blacklist old access token
-        // Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-
-        // Jwt accessJwt = ((JwtAuthenticationToken) auth).getToken();
-
-        // UUID accessJti = UUID.fromString(accessJwt.getClaimAsString("jti"));
-
-        // BlackListToken blackListToken = BlackListToken.builder()
-        // .jti(accessJti)
-        // .expiresAt(accessJwt.getExpiresAt())
-        // .build();
-
-        // blackListTokenRepository.save(blackListToken);
-
         // generate new tokens
         var newAccessToken = jwtTokenService.generate(TokenType.ACCESS, Instant.now(),
                 refreshJwt.getSubject(), UUID.randomUUID()).getToken();
@@ -169,6 +155,38 @@ public class AuthService {
                 .accessToken(newAccessToken)
                 .refreshToken(newRefreshToken.getToken())
                 .build();
+    }
+
+    public void logout(String refreshToken) {
+        log.info("Logout request received");
+
+        // revoke refresh token
+        Jwt refreshJwt = jwtTokenService.decodeToken(TokenType.REFRESH, refreshToken);
+        UUID refreshJti = UUID.fromString(refreshJwt.getClaimAsString("jti"));
+
+        Optional<RefreshToken> existingRft = refreshTokenRepository.findByJti(refreshJti);
+        if (existingRft.isEmpty()) {
+            log.info("Refresh token not found in database during logout");
+            throw new AppException(ErrorCode.UNAUTHORIZED, "Invalid refresh token");
+        }
+
+        existingRft.get().setRevoked(true);
+        refreshTokenRepository.save(existingRft.get());
+
+        // blacklist access token
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        Jwt accessJwt = ((JwtAuthenticationToken) auth).getToken();
+
+        UUID accessJti = UUID.fromString(accessJwt.getClaimAsString("jti"));
+
+        BlackListToken blackListToken = BlackListToken.builder()
+                .jti(accessJti)
+                .expiresAt(accessJwt.getExpiresAt())
+                .build();
+
+        blackListTokenRepository.save(blackListToken);
+
     }
 
     public void sendResetPasswordEmail(String email, String username, String token) {

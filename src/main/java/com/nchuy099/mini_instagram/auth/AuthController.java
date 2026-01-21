@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.nchuy099.mini_instagram.auth.dto.request.ForgotPasswordReq;
 import com.nchuy099.mini_instagram.auth.dto.request.LoginReq;
+import com.nchuy099.mini_instagram.auth.dto.request.LogoutReq;
 import com.nchuy099.mini_instagram.auth.dto.request.SignUpReq;
 import com.nchuy099.mini_instagram.auth.dto.response.LoginResp;
 import com.nchuy099.mini_instagram.auth.dto.response.RefreshTokenResp;
@@ -63,5 +64,13 @@ public class AuthController {
         log.info("Refresh token request received");
         String refreshToken = authorization.replace("Bearer ", "");
         return authService.refreshToken(refreshToken);
+    }
+
+    @PostMapping("/logout")
+    public String refreshToken(@RequestBody LogoutReq req) {
+        log.info("Logout request received");
+        String refreshToken = req.getRefreshToken();
+        authService.logout(refreshToken);
+        return "Logout successful";
     }
 }

@@ -58,8 +58,6 @@ public class JwtTokenService {
     @Value("${jwt.reset.expireMins}")
     private long resetExpireMins;
 
-    NimbusJwtDecoder nimbusJwtDecoder = null;
-
     private final UserRepository userRepository;
 
     public TokenResult generate(TokenType type, Instant issuedAt, String subject, UUID jti) {
@@ -87,12 +85,10 @@ public class JwtTokenService {
             throw new AppException(ErrorCode.UNAUTHORIZED, "Invalid JWT token");
         }
 
-        if (Objects.isNull(nimbusJwtDecoder)) {
-            SecretKeySpec secretKeySpec = new SecretKeySpec(getKey(type).getBytes(), "HmacSHA256");
-            nimbusJwtDecoder = NimbusJwtDecoder.withSecretKey(secretKeySpec)
-                    .macAlgorithm(MacAlgorithm.HS256)
-                    .build();
-        }
+        SecretKeySpec secretKeySpec = new SecretKeySpec(getKey(type).getBytes(), "HmacSHA256");
+        NimbusJwtDecoder nimbusJwtDecoder = NimbusJwtDecoder.withSecretKey(secretKeySpec)
+                .macAlgorithm(MacAlgorithm.HS256)
+                .build();
 
         return nimbusJwtDecoder.decode(token);
     }
