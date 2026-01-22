@@ -33,6 +33,8 @@ dependencies {
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9'
 	implementation 'org.springframework.boot:spring-boot-starter-webflux'
 
+    implementation platform("software.amazon.awssdk:bom:2.25.63")
+    implementation "software.amazon.awssdk:s3"
 	
 	// implementation 'org.slf4j:slf4j-api'
 

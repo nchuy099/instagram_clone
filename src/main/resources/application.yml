@@ -33,6 +33,14 @@ send-mail-service:
 frontend:
   url: ${FRONTEND_URL}
 
+media-container-expiration-minutes: ${MEDIA_CONTAINER_EXPIRATION_MINS}
+
+aws:
+  s3:
+    bucket: ${AWS_S3_BUCKET}
+    access-key-id: ${AWS_ACCESS_KEY_ID}
+    secret-access-key: ${AWS_SECRET_ACCESS_KEY}
+    region: ${AWS_REGION}
 
 logging:
   level:

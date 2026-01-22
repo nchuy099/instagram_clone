@@ -104,7 +104,8 @@ public class JwtTokenService {
             Optional<UserEntity> userOpt = userRepository.findById(userId);
             if (userOpt.isEmpty()) {
                 log.warn("User not found for ID: {}", userId);
-                return false;
+                throw new AppException(ErrorCode.NOT_FOUND, "User not found");
+                // return false;
             }
 
             String tokenType = jwt.getJWTClaimsSet()
@@ -112,7 +113,8 @@ public class JwtTokenService {
 
             if (!expectedType.name().equals(tokenType)) {
                 log.warn("Token type mismatch: expected {}, found {}", expectedType.name(), tokenType);
-                return false;
+                throw new AppException(ErrorCode.UNAUTHORIZED, "Token type mismatch: expected " + expectedType);
+                // return false;
             }
 
             Instant exp = jwt.getJWTClaimsSet()
@@ -121,7 +123,8 @@ public class JwtTokenService {
 
             if (Instant.now().isAfter(exp)) {
                 log.warn("Token expired");
-                return false;
+                throw new AppException(ErrorCode.UNAUTHORIZED, "Token expired");
+                // return false;
             }
 
             // verify signature
@@ -130,7 +133,8 @@ public class JwtTokenService {
 
         } catch (Exception e) {
             log.error("Failed to validate token: {}", e.getMessage());
-            return false;
+            throw new AppException(ErrorCode.UNAUTHORIZED, e.getMessage());
+            // return false;
         }
     }
 

@@ -16,13 +16,13 @@ public class ErrorResponse {
     private int code;
     private String path;
     private String message;
-    private Instant timestamp;
+    private String timestamp;
 
     public ErrorResponse(int code, String path, String message) {
         this.code = code;
         this.path = path;
         this.message = message;
-        this.timestamp = Instant.now();
+        this.timestamp = Instant.now().toString();
     }
 
 }

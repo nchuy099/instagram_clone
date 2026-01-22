@@ -6,9 +6,12 @@ import java.util.Date;
 import java.util.List;
 
 import com.nchuy099.mini_instagram.common.AbstractEntity;
+import com.nchuy099.mini_instagram.media.entity.MediaContainerEntity;
+import com.nchuy099.mini_instagram.post.entity.PostEntity;
 import com.nchuy099.mini_instagram.token.entity.RefreshToken;
 import com.nchuy099.mini_instagram.token.entity.ResetPasswordToken;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.OneToMany;
@@ -60,9 +63,19 @@ public class UserEntity extends AbstractEntity {
     @Column(nullable = true, length = 15)
     String phoneNumber;
 
-    @OneToMany(mappedBy = "user")
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    @Builder.Default
     private List<RefreshToken> refreshTokens = new ArrayList<>();
 
-    @OneToMany(mappedBy = "user")
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    @Builder.Default
     private List<ResetPasswordToken> resetPasswordTokens = new ArrayList<>();
+
+    @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<MediaContainerEntity> mediaContainers = new ArrayList<>();
+
+    @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<PostEntity> posts = new ArrayList<>();
 }
