@@ -1,4 +1,4 @@
-package com.nchuy099.mini_instagram.post.entity;
+package com.nchuy099.mini_instagram.post;
 
 import com.nchuy099.mini_instagram.common.AbstractEntity;
 import com.nchuy099.mini_instagram.media.entity.MediaContainerEntity;

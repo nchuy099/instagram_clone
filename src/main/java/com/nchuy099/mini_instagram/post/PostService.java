@@ -1,4 +1,4 @@
-package com.nchuy099.mini_instagram.post.service;
+package com.nchuy099.mini_instagram.post;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -25,8 +25,6 @@ import com.nchuy099.mini_instagram.post.dto.response.PostFeedResp;
 import com.nchuy099.mini_instagram.post.dto.response.PublishPostResp;
 import com.nchuy099.mini_instagram.post.dto.response.PostFeedResp.LocationDto;
 import com.nchuy099.mini_instagram.post.dto.response.PostFeedResp.MediaDto;
-import com.nchuy099.mini_instagram.post.entity.PostEntity;
-import com.nchuy099.mini_instagram.post.repository.PostRepository;
 import com.nchuy099.mini_instagram.user.UserEntity;
 import com.nchuy099.mini_instagram.user.UserRepository;
 

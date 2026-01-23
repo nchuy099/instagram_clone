@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.RestController;
 import com.nchuy099.mini_instagram.post.dto.request.PublishPostReq;
 import com.nchuy099.mini_instagram.post.dto.response.FeedPageResp;
 import com.nchuy099.mini_instagram.post.dto.response.PublishPostResp;
-import com.nchuy099.mini_instagram.post.service.PostService;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

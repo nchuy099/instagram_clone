@@ -7,7 +7,7 @@ import java.util.List;
 
 import com.nchuy099.mini_instagram.common.AbstractEntity;
 import com.nchuy099.mini_instagram.media.entity.MediaContainerEntity;
-import com.nchuy099.mini_instagram.post.entity.PostEntity;
+import com.nchuy099.mini_instagram.post.PostEntity;
 import com.nchuy099.mini_instagram.token.entity.RefreshToken;
 import com.nchuy099.mini_instagram.token.entity.ResetPasswordToken;
 

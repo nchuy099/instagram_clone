@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.nchuy099.mini_instagram.common.AbstractEntity;
-import com.nchuy099.mini_instagram.post.entity.PostEntity;
+import com.nchuy099.mini_instagram.post.PostEntity;
 import com.nchuy099.mini_instagram.user.UserEntity;
 
 import jakarta.persistence.CascadeType;
