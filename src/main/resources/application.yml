@@ -42,6 +42,9 @@ aws:
     secret-access-key: ${AWS_SECRET_ACCESS_KEY}
     region: ${AWS_REGION}
 
+webhook:
+  secret: ${WEBHOOK_SECRET}
+
 logging:
   level:
     root: INFO

@@ -9,12 +9,15 @@ import java.util.UUID;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import com.nchuy099.mini_instagram.common.enums.UploadType;
 import com.nchuy099.mini_instagram.common.exception.AppException;
 import com.nchuy099.mini_instagram.common.exception.ErrorCode;
 import com.nchuy099.mini_instagram.user.dto.request.CreateUserReq;
 import com.nchuy099.mini_instagram.user.dto.request.UpdateUserProfileReq;
+import com.nchuy099.mini_instagram.user.dto.response.AvatarUploadUrlResp;
 import com.nchuy099.mini_instagram.user.dto.response.UserProfileResp;
 import com.nchuy099.mini_instagram.common.utils.SecurityUtils;
+import com.nchuy099.mini_instagram.media.MediaService;
 
 @Slf4j
 @Service
@@ -24,6 +27,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final SecurityUtils securityUtils;
+    private final MediaService mediaService;
 
     public String create(CreateUserReq req) {
         log.info("Creating user with email: {}", req.getEmail());
@@ -119,17 +123,26 @@ public class UserService {
 
     }
 
+    public AvatarUploadUrlResp createAvatarUploadUrl(String contentType) {
+        String userId = securityUtils.getCurrentUserId().toString();
+
+        return AvatarUploadUrlResp.builder()
+                .uploadUrl(mediaService.createPreSignedUploadUrl(userId, "", "",
+                        contentType, UploadType.AVATAR))
+                .build();
+    }
+
     private UserProfileResp toUserProfileResp(UserEntity userEntity) {
         return UserProfileResp.builder()
                 .userId(userEntity.getId().toString())
                 .email(userEntity.getEmail())
-                .biography(userEntity.getAvatarUrl())
+                .biography(userEntity.getBiography())
                 .username(userEntity.getUsername())
                 .fullName(userEntity.getFullName())
-                .avatarUrl(userEntity.getAvatarUrl())
                 .dateOfBirth(userEntity.getDateOfBirth())
                 .gender(userEntity.getGender())
                 .phoneNumber(userEntity.getPhoneNumber())
                 .build();
     }
+
 }

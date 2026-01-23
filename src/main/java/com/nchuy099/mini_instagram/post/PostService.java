@@ -25,6 +25,7 @@ import com.nchuy099.mini_instagram.post.dto.response.PostFeedResp;
 import com.nchuy099.mini_instagram.post.dto.response.PublishPostResp;
 import com.nchuy099.mini_instagram.post.dto.response.PostFeedResp.LocationDto;
 import com.nchuy099.mini_instagram.post.dto.response.PostFeedResp.MediaDto;
+import com.nchuy099.mini_instagram.user.AvatarEntity;
 import com.nchuy099.mini_instagram.user.UserEntity;
 import com.nchuy099.mini_instagram.user.UserRepository;
 
@@ -162,7 +163,10 @@ public class PostService {
                         .build())
 
                 .username(post.getOwner().getUsername())
-                .userAvatar(post.getOwner().getAvatarUrl())
+                .userAvatar(post.getOwner().getAvatars().stream()
+                        .filter(AvatarEntity::isActive)
+                        .map(AvatarEntity::getUrl).findFirst()
+                        .orElse(null))
 
                 .media(post.getMediaContainer().getMediaFiles().stream().map(this::toMediaDto).toList())
                 .build();

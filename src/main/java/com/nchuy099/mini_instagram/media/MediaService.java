@@ -42,106 +42,106 @@ import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignReques
 @RequiredArgsConstructor
 public class MediaService {
 
-    private final SecurityUtils securityUtils;
-    private final MediaContainerRepository mediaContainerRepository;
-    private final UserRepository userRepository;
-    private final S3Presigner s3Presigner;
+        private final SecurityUtils securityUtils;
+        private final MediaContainerRepository mediaContainerRepository;
+        private final UserRepository userRepository;
+        private final S3Presigner s3Presigner;
 
-    @Value("${media-container-expiration-minutes}")
-    private int mediaContainerExpirationMins;
+        @Value("${media-container-expiration-minutes}")
+        private int mediaContainerExpirationMins;
 
-    @Value("${aws.s3.bucket}")
-    private String bucket;
+        @Value("${aws.s3.bucket}")
+        private String bucket;
 
-    @Value("${aws.s3.region}")
-    private String region;
+        @Value("${aws.s3.region}")
+        private String region;
 
-    @Value("${aws.s3.access-key-id}")
-    private String accessKeyId;
+        @Value("${aws.s3.access-key-id}")
+        private String accessKeyId;
 
-    @Value("${aws.s3.secret-access-key}")
-    private String secretAccessKey;
+        @Value("${aws.s3.secret-access-key}")
+        private String secretAccessKey;
 
-    public CreateMediaContainerResp create(CreateMediaContainerReq req) {
-        log.info("Creating media container with request: {}", req);
+        public CreateMediaContainerResp create(CreateMediaContainerReq req) {
+                log.info("Creating media container with request: {}", req);
 
-        UUID userId = securityUtils.getCurrentUserId();
+                UUID userId = securityUtils.getCurrentUserId();
 
-        Optional<UserEntity> userOpt = userRepository.findById(userId);
-        if (userOpt.isEmpty()) {
-            log.warn("User with ID {} not found", userId);
-            throw new AppException(ErrorCode.NOT_FOUND, "User not found");
+                Optional<UserEntity> userOpt = userRepository.findById(userId);
+                if (userOpt.isEmpty()) {
+                        log.warn("User with ID {} not found", userId);
+                        throw new AppException(ErrorCode.NOT_FOUND, "User not found");
+                }
+
+                MediaContainerEntity mediaContainer = MediaContainerEntity.builder()
+                                .owner(userOpt.get())
+                                .expiresAt(Instant.now().plus(mediaContainerExpirationMins, ChronoUnit.MINUTES))
+                                .build();
+
+                mediaContainerRepository.save(mediaContainer);
+
+                String mediaFileId = UUID.randomUUID().toString();
+                String mediaContainerId = mediaContainer.getId().toString();
+
+                String uploadUrl = createPreSignedUploadUrl(userId.toString(), mediaContainerId,
+                                mediaFileId, req.getMediaContentType(), UploadType.POST);
+
+                return CreateMediaContainerResp.builder()
+                                .containerId(mediaContainerId)
+                                .uploadUrl(uploadUrl)
+                                .build();
         }
 
-        MediaContainerEntity mediaContainer = MediaContainerEntity.builder()
-                .owner(userOpt.get())
-                .expiresAt(Instant.now().plus(mediaContainerExpirationMins, ChronoUnit.MINUTES))
-                .build();
+        public String createPreSignedUploadUrl(
+                        String userId, String containerId,
+                        String mediaFileId, String contentType,
+                        UploadType uploadType) {
 
-        mediaContainerRepository.save(mediaContainer);
+                log.info("Creating pre-signed upload URL");
 
-        String mediaFileId = UUID.randomUUID().toString();
-        String mediaContainerId = mediaContainer.getId().toString();
+                String key = generateS3ObjectKey(userId, containerId, mediaFileId, contentType, uploadType);
 
-        String uploadUrl = createPreSignedUploadUrl(userId.toString(), mediaContainerId,
-                mediaFileId, req.getMediaContentType(), UploadType.POST);
+                PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                                .bucket(bucket)
+                                .key(key)
+                                .contentType(contentType)
+                                .build();
 
-        return CreateMediaContainerResp.builder()
-                .containerId(mediaContainerId)
-                .uploadUrl(uploadUrl)
-                .build();
-    }
+                PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
+                                .signatureDuration(Duration.of(mediaContainerExpirationMins, ChronoUnit.MINUTES))
+                                .putObjectRequest(putObjectRequest)
+                                .build();
 
-    private String createPreSignedUploadUrl(
-            String userId, String containerId,
-            String mediaFileId, String contentType,
-            UploadType uploadType) {
+                PresignedPutObjectRequest presignedRequest = s3Presigner.presignPutObject(presignRequest);
 
-        log.info("Creating pre-signed upload URL");
-
-        String key = generateS3ObjectKey(userId, containerId, mediaFileId, contentType, uploadType);
-
-        PutObjectRequest putObjectRequest = PutObjectRequest.builder()
-                .bucket(bucket)
-                .key(key)
-                .contentType(contentType)
-                .build();
-
-        PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
-                .signatureDuration(Duration.of(mediaContainerExpirationMins, ChronoUnit.MINUTES))
-                .putObjectRequest(putObjectRequest)
-                .build();
-
-        PresignedPutObjectRequest presignedRequest = s3Presigner.presignPutObject(presignRequest);
-
-        return presignedRequest.url().toString();
-    }
-
-    private String generateS3ObjectKey(
-            String userId, String containerId,
-            String mediaFileId, String contentType,
-            UploadType uploadType) {
-
-        log.info("Generate S3 Object Key");
-        String extension = contentType.split("/")[1];
-
-        String key;
-
-        if (uploadType == UploadType.AVATAR) {
-            UUID avatarId = UUID.randomUUID();
-            key = String.format(
-                    "images/avatars/original/%s/%s.%s",
-                    userId,
-                    avatarId,
-                    extension);
-        } else {
-            key = String.format(
-                    "images/posts/original/%s/%s.%s",
-                    containerId,
-                    mediaFileId,
-                    extension);
+                return presignedRequest.url().toString();
         }
 
-        return key;
-    }
+        private String generateS3ObjectKey(
+                        String userId, String containerId,
+                        String mediaFileId, String contentType,
+                        UploadType uploadType) {
+
+                log.info("Generate S3 Object Key");
+                String extension = contentType.split("/")[1];
+
+                String key;
+
+                if (uploadType == UploadType.AVATAR) {
+                        UUID avatarId = UUID.randomUUID();
+                        key = String.format(
+                                        "images/avatars/original/%s/%s.%s",
+                                        userId,
+                                        avatarId,
+                                        extension);
+                } else {
+                        key = String.format(
+                                        "images/posts/original/%s/%s.%s",
+                                        containerId,
+                                        mediaFileId,
+                                        extension);
+                }
+
+                return key;
+        }
 }

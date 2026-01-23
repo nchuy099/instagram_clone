@@ -51,8 +51,6 @@ public class UserEntity extends AbstractEntity {
 
     String password;
 
-    String avatarUrl;
-
     @Column(nullable = true)
     String biography;
 
@@ -80,4 +78,8 @@ public class UserEntity extends AbstractEntity {
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private List<PostEntity> posts = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<AvatarEntity> avatars = new ArrayList<>();
 }

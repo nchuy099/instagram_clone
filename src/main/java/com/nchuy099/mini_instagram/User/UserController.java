@@ -1,12 +1,15 @@
 package com.nchuy099.mini_instagram.user;
 
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.nchuy099.mini_instagram.user.dto.request.CreateAvatarUploadUrlReq;
 import com.nchuy099.mini_instagram.user.dto.request.UpdateUserProfileReq;
+import com.nchuy099.mini_instagram.user.dto.response.AvatarUploadUrlResp;
 import com.nchuy099.mini_instagram.user.dto.response.UserProfileResp;
 
 import jakarta.validation.Valid;
@@ -31,6 +34,12 @@ public class UserController {
     public UserProfileResp updateUserProfile(@RequestBody @Valid UpdateUserProfileReq req) {
         log.info("Received update user profile request");
         return userService.updateProfile(req);
+    }
+
+    @PostMapping("/me/avatar/upload-url/create")
+    public AvatarUploadUrlResp createAvatarUploadUrl(@RequestBody @Valid CreateAvatarUploadUrlReq req) {
+        log.info("Received Create avatar upload url request");
+        return userService.createAvatarUploadUrl(req.getMediaContentType());
     }
 
 }

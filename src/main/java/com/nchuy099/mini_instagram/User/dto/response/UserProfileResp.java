@@ -22,7 +22,6 @@ public class UserProfileResp {
     String biography;
     String username;
     String fullName;
-    String avatarUrl;
     LocalDate dateOfBirth;
     String gender;
     String phoneNumber;
