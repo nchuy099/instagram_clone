@@ -35,4 +35,10 @@ public class PostController {
         log.info("Get feed page request received: {}", cursor);
         return postService.getFeedPage(cursor);
     }
+
+    @GetMapping("/me/list")
+    public FeedPageResp getUserPosts(@RequestParam(name = "cursor", required = false) String cursor) {
+        log.info("Get user posts request received: {}", cursor);
+        return postService.getUserPosts(cursor);
+    }
 }

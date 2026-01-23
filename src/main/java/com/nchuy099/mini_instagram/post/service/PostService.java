@@ -111,6 +111,45 @@ public class PostService {
                 .build();
     }
 
+    public FeedPageResp getUserPosts(String cursor) {
+
+        CursorUtils.CursorData cursorData = CursorUtils.decode(cursor);
+        Instant createdAt;
+        UUID postId;
+        if (cursorData == null) {
+            createdAt = Instant.now();
+            postId = UUID.randomUUID();
+        } else {
+            createdAt = cursorData.createdAt();
+            postId = UUID.fromString(cursorData.id());
+        }
+
+        UUID userId = securityUtils.getCurrentUserId();
+
+        int pageSize = 10;
+        Pageable pageable = PageRequest.of(0, pageSize + 1);
+        List<PostEntity> posts = postRepository.findFeedPosts(postId, userId, createdAt, pageable);
+
+        boolean hasMore = posts.size() > pageSize;
+        if (hasMore) {
+            posts = posts.subList(0, pageSize);
+        }
+
+        String nextCursor = null;
+
+        if (!posts.isEmpty()) {
+            PostEntity lastPost = posts.get(posts.size() - 1);
+
+            nextCursor = CursorUtils.encode(lastPost.getCreatedAt(), lastPost.getId().toString());
+        }
+
+        return FeedPageResp.builder()
+                .posts(posts.stream().map(this::toPostFeedResp).toList())
+                .nextCursor(nextCursor)
+                .hasMore(hasMore)
+                .build();
+    }
+
     private PostFeedResp toPostFeedResp(PostEntity post) {
         return PostFeedResp.builder()
 
