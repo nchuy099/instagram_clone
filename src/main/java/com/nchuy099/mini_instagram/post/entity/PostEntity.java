@@ -36,9 +36,9 @@ public class PostEntity extends AbstractEntity {
 
     String locationText;
 
-    String locationLat;
+    Float locationLat;
 
-    String locationLng;
+    Float locationLng;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id", nullable = false)

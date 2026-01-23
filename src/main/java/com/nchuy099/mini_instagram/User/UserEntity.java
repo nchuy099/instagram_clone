@@ -51,6 +51,8 @@ public class UserEntity extends AbstractEntity {
 
     String password;
 
+    String avatarUrl;
+
     @Column(nullable = true)
     String biography;
 
