@@ -1,0 +1,7 @@
+export default function ProfilePage() {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <h1 className="text-2xl font-bold p-4">Profile Page Placeholder</h1>
+    </div>
+  );
+}
