@@ -65,7 +65,7 @@ Lưu thông tin tài khoản chính.
 
 ```sql
 create table users (
-  id bigserial primary key,
+  id uuid primary key default gen_random_uuid(),
   username varchar(30) not null unique,
   full_name varchar(100),
   email varchar(255) unique,
@@ -96,8 +96,8 @@ Liên kết tài khoản người dùng với nhà cung cấp OAuth.
 
 ```sql
 create table user_auth_providers (
-  id bigserial primary key,
-  user_id bigint not null references users(id) on delete cascade,
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
   provider varchar(20) not null,
   provider_user_id varchar(255) not null,
   created_at timestamptz not null default now(),
@@ -116,8 +116,8 @@ Lưu refresh token/session.
 
 ```sql
 create table user_sessions (
-  id bigserial primary key,
-  user_id bigint not null references users(id) on delete cascade,
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
   refresh_token_hash text not null,
   ip_address varchar(64),
   user_agent text,
@@ -135,8 +135,8 @@ Quan hệ follow giữa user với user.
 
 ```sql
 create table follows (
-  follower_id bigint not null references users(id) on delete cascade,
-  following_id bigint not null references users(id) on delete cascade,
+  follower_id uuid not null references users(id) on delete cascade,
+  following_id uuid not null references users(id) on delete cascade,
   created_at timestamptz not null default now(),
   primary key (follower_id, following_id),
   check (follower_id <> following_id)
@@ -151,9 +151,9 @@ Dùng khi hỗ trợ private account.
 
 ```sql
 create table follow_requests (
-  id bigserial primary key,
-  requester_id bigint not null references users(id) on delete cascade,
-  target_user_id bigint not null references users(id) on delete cascade,
+  id uuid primary key default gen_random_uuid(),
+  requester_id uuid not null references users(id) on delete cascade,
+  target_user_id uuid not null references users(id) on delete cascade,
   status varchar(20) not null default 'pending',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
@@ -169,8 +169,8 @@ Thông tin chính của bài viết.
 
 ```sql
 create table posts (
-  id bigserial primary key,
-  user_id bigint not null references users(id) on delete cascade,
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
   caption text,
   location_name varchar(255),
   visibility varchar(20) not null default 'public',
@@ -198,8 +198,8 @@ Lưu metadata media trên S3.
 
 ```sql
 create table media_assets (
-  id bigserial primary key,
-  owner_user_id bigint references users(id) on delete set null,
+  id uuid primary key default gen_random_uuid(),
+  owner_user_id uuid references users(id) on delete set null,
   media_type varchar(20) not null,
   storage_key text not null,
   url text not null,
@@ -226,9 +226,9 @@ Liên kết post với nhiều media.
 
 ```sql
 create table post_media (
-  id bigserial primary key,
-  post_id bigint not null references posts(id) on delete cascade,
-  media_asset_id bigint not null references media_assets(id) on delete cascade,
+  id uuid primary key default gen_random_uuid(),
+  post_id uuid not null references posts(id) on delete cascade,
+  media_asset_id uuid not null references media_assets(id) on delete cascade,
   sort_order integer not null default 0,
   unique (post_id, media_asset_id)
 );
@@ -242,10 +242,10 @@ Lưu comment và reply comment.
 
 ```sql
 create table comments (
-  id bigserial primary key,
-  post_id bigint not null references posts(id) on delete cascade,
-  user_id bigint not null references users(id) on delete cascade,
-  parent_comment_id bigint references comments(id) on delete cascade,
+  id uuid primary key default gen_random_uuid(),
+  post_id uuid not null references posts(id) on delete cascade,
+  user_id uuid not null references users(id) on delete cascade,
+  parent_comment_id uuid references comments(id) on delete cascade,
   content text not null,
   like_count integer not null default 0,
   reply_count integer not null default 0,
@@ -267,8 +267,8 @@ Lưu like trên post.
 
 ```sql
 create table post_likes (
-  user_id bigint not null references users(id) on delete cascade,
-  post_id bigint not null references posts(id) on delete cascade,
+  user_id uuid not null references users(id) on delete cascade,
+  post_id uuid not null references posts(id) on delete cascade,
   created_at timestamptz not null default now(),
   primary key (user_id, post_id)
 );
@@ -282,8 +282,8 @@ Lưu like trên comment.
 
 ```sql
 create table comment_likes (
-  user_id bigint not null references users(id) on delete cascade,
-  comment_id bigint not null references comments(id) on delete cascade,
+  user_id uuid not null references users(id) on delete cascade,
+  comment_id uuid not null references comments(id) on delete cascade,
   created_at timestamptz not null default now(),
   primary key (user_id, comment_id)
 );
@@ -297,8 +297,8 @@ Lưu các bài viết user đã save.
 
 ```sql
 create table saved_posts (
-  user_id bigint not null references users(id) on delete cascade,
-  post_id bigint not null references posts(id) on delete cascade,
+  user_id uuid not null references users(id) on delete cascade,
+  post_id uuid not null references posts(id) on delete cascade,
   created_at timestamptz not null default now(),
   primary key (user_id, post_id)
 );
@@ -312,7 +312,7 @@ Danh mục hashtag.
 
 ```sql
 create table hashtags (
-  id bigserial primary key,
+  id uuid primary key default gen_random_uuid(),
   name varchar(100) not null unique,
   post_count integer not null default 0,
   created_at timestamptz not null default now()
@@ -327,8 +327,8 @@ Liên kết nhiều-nhiều giữa posts và hashtags.
 
 ```sql
 create table post_hashtags (
-  post_id bigint not null references posts(id) on delete cascade,
-  hashtag_id bigint not null references hashtags(id) on delete cascade,
+  post_id uuid not null references posts(id) on delete cascade,
+  hashtag_id uuid not null references hashtags(id) on delete cascade,
   primary key (post_id, hashtag_id)
 );
 ```
@@ -341,8 +341,8 @@ Lưu các user được tag trong post.
 
 ```sql
 create table tagged_posts (
-  post_id bigint not null references posts(id) on delete cascade,
-  tagged_user_id bigint not null references users(id) on delete cascade,
+  post_id uuid not null references posts(id) on delete cascade,
+  tagged_user_id uuid not null references users(id) on delete cascade,
   created_at timestamptz not null default now(),
   primary key (post_id, tagged_user_id)
 );
@@ -356,9 +356,9 @@ Lưu story.
 
 ```sql
 create table stories (
-  id bigserial primary key,
-  user_id bigint not null references users(id) on delete cascade,
-  media_asset_id bigint not null references media_assets(id) on delete cascade,
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
+  media_asset_id uuid not null references media_assets(id) on delete cascade,
   caption varchar(255),
   view_count integer not null default 0,
   created_at timestamptz not null default now(),
@@ -379,8 +379,8 @@ Theo dõi ai đã xem story.
 
 ```sql
 create table story_views (
-  story_id bigint not null references stories(id) on delete cascade,
-  viewer_user_id bigint not null references users(id) on delete cascade,
+  story_id uuid not null references stories(id) on delete cascade,
+  viewer_user_id uuid not null references users(id) on delete cascade,
   viewed_at timestamptz not null default now(),
   primary key (story_id, viewer_user_id)
 );
@@ -394,7 +394,7 @@ Lưu thông tin cuộc trò chuyện.
 
 ```sql
 create table conversations (
-  id bigserial primary key,
+  id uuid primary key default gen_random_uuid(),
   conversation_type varchar(20) not null default 'direct',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -412,10 +412,10 @@ Danh sách user trong conversation.
 
 ```sql
 create table conversation_participants (
-  conversation_id bigint not null references conversations(id) on delete cascade,
-  user_id bigint not null references users(id) on delete cascade,
+  conversation_id uuid not null references conversations(id) on delete cascade,
+  user_id uuid not null references users(id) on delete cascade,
   joined_at timestamptz not null default now(),
-  last_read_message_id bigint,
+  last_read_message_id uuid,
   primary key (conversation_id, user_id)
 );
 ```
@@ -431,12 +431,12 @@ Tin nhắn trong conversation.
 
 ```sql
 create table messages (
-  id bigserial primary key,
-  conversation_id bigint not null references conversations(id) on delete cascade,
-  sender_user_id bigint not null references users(id) on delete cascade,
+  id uuid primary key default gen_random_uuid(),
+  conversation_id uuid not null references conversations(id) on delete cascade,
+  sender_user_id uuid not null references users(id) on delete cascade,
   message_type varchar(20) not null default 'text',
   content text,
-  media_asset_id bigint references media_assets(id) on delete set null,
+  media_asset_id uuid references media_assets(id) on delete set null,
   created_at timestamptz not null default now(),
   deleted_at timestamptz
 );
@@ -454,9 +454,9 @@ Lưu notifications cho user.
 
 ```sql
 create table notifications (
-  id bigserial primary key,
-  recipient_user_id bigint not null references users(id) on delete cascade,
-  actor_user_id bigint references users(id) on delete set null,
+  id uuid primary key default gen_random_uuid(),
+  recipient_user_id uuid not null references users(id) on delete cascade,
+  actor_user_id uuid references users(id) on delete set null,
   type varchar(30) not null,
   entity_type varchar(30),
   entity_id bigint,
@@ -479,11 +479,11 @@ Lưu lịch sử tìm kiếm.
 
 ```sql
 create table recent_searches (
-  id bigserial primary key,
-  user_id bigint not null references users(id) on delete cascade,
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
   search_type varchar(20) not null,
   keyword varchar(255),
-  target_id bigint,
+  target_id uuid,
   created_at timestamptz not null default now()
 );
 ```

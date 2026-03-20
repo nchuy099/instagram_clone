@@ -8,6 +8,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+
+import java.util.UUID;
+
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -46,18 +49,20 @@ class UserServiceTest {
 
     @Test
     void shouldReturnProfileWithFollowStatus() {
+        UUID currentUserId = UUID.randomUUID();
         User currentUser = new User();
-        currentUser.setId(1L);
+        currentUser.setId(currentUserId);
         currentUser.setUsername("currentuser");
 
+        UUID targetUserId = UUID.randomUUID();
         User targetUser = new User();
-        targetUser.setId(2L);
+        targetUser.setId(targetUserId);
         targetUser.setUsername("targetuser");
         targetUser.setFollowerCount(10);
 
         when(userRepository.findByUsername("currentuser")).thenReturn(Optional.of(currentUser));
         when(userRepository.findByUsername("targetuser")).thenReturn(Optional.of(targetUser));
-        when(followRepository.existsByFollowerIdAndFollowingId(1L, 2L)).thenReturn(true);
+        when(followRepository.existsByFollowerIdAndFollowingId(currentUserId, targetUserId)).thenReturn(true);
 
         ProfileHeaderDTO profile = userService.getUserProfile("targetuser");
 

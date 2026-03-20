@@ -1,5 +1,5 @@
 create table users (
-  id bigserial primary key,
+  id uuid primary key default gen_random_uuid(),
   username varchar(30) not null unique,
   full_name varchar(100),
   email varchar(255) unique,
@@ -18,21 +18,23 @@ create table users (
 );
 
 create table user_auth_providers (
-  id bigserial primary key,
-  user_id bigint not null references users(id) on delete cascade,
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
   provider varchar(20) not null,
   provider_user_id varchar(255) not null,
   created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
   unique (provider, provider_user_id)
 );
 
 create table user_sessions (
-  id bigserial primary key,
-  user_id bigint not null references users(id) on delete cascade,
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references users(id) on delete cascade,
   refresh_token_hash text not null,
   user_agent text,
   ip_address inet,
   expires_at timestamptz not null,
   revoked_at timestamptz,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );

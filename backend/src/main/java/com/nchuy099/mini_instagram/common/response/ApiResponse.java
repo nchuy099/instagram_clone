@@ -13,5 +13,15 @@ public class ApiResponse<T> {
     private boolean success;
     private T data;
     private String message;
-    private Object error;
+    private ErrorDetails error;
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ErrorDetails {
+        private String code;
+        private String message;
+        private Object details;
+    }
 }

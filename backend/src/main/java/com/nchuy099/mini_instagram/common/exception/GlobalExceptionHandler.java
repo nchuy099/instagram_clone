@@ -20,7 +20,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.<Void>builder()
                         .success(false)
-                        .message(ex.getMessage())
+                        .message("Error")
+                        .error(ApiResponse.ErrorDetails.builder()
+                                .code("BAD_REQUEST")
+                                .message(ex.getMessage())
+                                .build())
                         .build());
     }
 
@@ -29,7 +33,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                 .body(ApiResponse.<Void>builder()
                         .success(false)
-                        .message(ex.getMessage())
+                        .message("Error")
+                        .error(ApiResponse.ErrorDetails.builder()
+                                .code("UNAUTHORIZED")
+                                .message(ex.getMessage())
+                                .build())
                         .build());
     }
 
@@ -38,12 +46,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(ApiResponse.<Void>builder()
                         .success(false)
-                        .message("Access Denied: " + ex.getMessage())
+                        .message("Error")
+                        .error(ApiResponse.ErrorDetails.builder()
+                                .code("FORBIDDEN")
+                                .message("Access Denied: " + ex.getMessage())
+                                .build())
                         .build());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationExceptions(MethodArgumentNotValidException ex) {
+    public ResponseEntity<ApiResponse<Void>> handleValidationExceptions(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
         ex.getBindingResult().getAllErrors().forEach(error -> {
             String fieldName = ((FieldError) error).getField();
@@ -52,10 +64,14 @@ public class GlobalExceptionHandler {
         });
         
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.<Map<String, String>>builder()
+                .body(ApiResponse.<Void>builder()
                         .success(false)
-                        .data(errors)
-                        .message("Validation failed")
+                        .message("Error")
+                        .error(ApiResponse.ErrorDetails.builder()
+                                .code("VALIDATION_ERROR")
+                                .message("Validation failed")
+                                .details(errors)
+                                .build())
                         .build());
     }
 
@@ -64,7 +80,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.<Void>builder()
                         .success(false)
-                        .message("An unexpected error occurred: " + ex.getMessage())
+                        .message("Error")
+                        .error(ApiResponse.ErrorDetails.builder()
+                                .code("INTERNAL_SERVER_ERROR")
+                                .message("An unexpected error occurred")
+                                .details(ex.getMessage())
+                                .build())
                         .build());
     }
 }

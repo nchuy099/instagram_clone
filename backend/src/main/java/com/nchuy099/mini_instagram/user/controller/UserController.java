@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
@@ -38,7 +40,7 @@ public class UserController {
     }
 
     @PostMapping("/users/{userId}/follow")
-    public ResponseEntity<ApiResponse<Void>> followUser(@PathVariable Long userId) {
+    public ResponseEntity<ApiResponse<Void>> followUser(@PathVariable UUID userId) {
         followService.followUser(userId);
         return ResponseEntity.ok(ApiResponse.<Void>builder()
                 .success(true)
@@ -47,7 +49,7 @@ public class UserController {
     }
 
     @DeleteMapping("/users/{userId}/follow")
-    public ResponseEntity<ApiResponse<Void>> unfollowUser(@PathVariable Long userId) {
+    public ResponseEntity<ApiResponse<Void>> unfollowUser(@PathVariable UUID userId) {
         followService.unfollowUser(userId);
         return ResponseEntity.ok(ApiResponse.<Void>builder()
                 .success(true)

@@ -3,10 +3,12 @@ package com.nchuy099.mini_instagram.user.dto;
 import lombok.Builder;
 import lombok.Data;
 
+import java.util.UUID;
+
 @Data
 @Builder
 public class ProfileHeaderDTO {
-    private Long id;
+    private UUID id;
     private String username;
     private String fullName;
     private String bio;

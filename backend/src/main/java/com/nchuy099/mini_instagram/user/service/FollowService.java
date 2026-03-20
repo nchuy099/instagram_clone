@@ -11,6 +11,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.UUID;
+
 @Service
 @RequiredArgsConstructor
 public class FollowService {
@@ -19,7 +21,7 @@ public class FollowService {
     private final FollowRepository followRepository;
 
     @Transactional
-    public void followUser(Long targetUserId) {
+    public void followUser(UUID targetUserId) {
         User currentUser = getCurrentAuthenticatedUser();
         if (currentUser.getId().equals(targetUserId)) {
             throw new IllegalArgumentException("You cannot follow yourself");
@@ -43,7 +45,7 @@ public class FollowService {
     }
 
     @Transactional
-    public void unfollowUser(Long targetUserId) {
+    public void unfollowUser(UUID targetUserId) {
         User currentUser = getCurrentAuthenticatedUser();
         
         User targetUser = userRepository.findById(targetUserId)

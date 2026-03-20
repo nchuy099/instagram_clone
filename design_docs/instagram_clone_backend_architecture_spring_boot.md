@@ -271,6 +271,8 @@ Mỗi module nên có các lớp sau:
 
 ### 7.5 Entity layer
 - mô hình hóa bảng dữ liệu
+- Tất cả các Entity đều nên kế thừa lớp trừu tượng `BaseEntity`.
+- **BaseEntity**: Sử dụng `@MappedSuperclass` chứa các trường dùng chung là `id` (kiểu `UUID`, `gen_random_uuid()`), `createdAt`, `updatedAt` (được tự động gán giá trị nhờ `@EnableJpaAuditing` và `@EntityListeners`).
 
 ---
 

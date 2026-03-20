@@ -8,11 +8,13 @@ import com.nchuy099.mini_instagram.common.security.JwtTokenProvider;
 import com.nchuy099.mini_instagram.user.dto.ProfileHeaderDTO;
 import com.nchuy099.mini_instagram.user.dto.UpdateProfileRequest;
 import com.nchuy099.mini_instagram.user.dto.UserDTO;
-import com.nchuy099.mini_instagram.user.service.FollowService;
-import com.nchuy099.mini_instagram.user.service.UserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import com.nchuy099.mini_instagram.user.service.FollowService;
+import com.nchuy099.mini_instagram.user.service.UserService;
+
+import java.util.UUID;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
@@ -55,7 +57,7 @@ class UserControllerTest {
     @Test
     void shouldGetUserProfile() throws Exception {
         ProfileHeaderDTO mockProfile = ProfileHeaderDTO.builder()
-                .id(1L)
+                .id(UUID.randomUUID())
                 .username("testuser")
                 .followerCount(100)
                 .build();
@@ -75,7 +77,7 @@ class UserControllerTest {
         request.setBio("New bio");
 
         UserDTO updatedUser = UserDTO.builder()
-                .id(1L)
+                .id(UUID.randomUUID())
                 .username("currentuser")
                 .bio("New bio")
                 .build();

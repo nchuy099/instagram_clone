@@ -22,7 +22,8 @@ export default function LoginPage() {
       login(response.data.data);
       navigate('/');
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to login');
+      const errorMsg = err.response?.data?.error?.message || err.response?.data?.message || 'Failed to login';
+      setError(errorMsg);
     } finally {
       setIsLoading(false);
     }

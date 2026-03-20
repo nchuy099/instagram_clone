@@ -3,7 +3,8 @@ package com.nchuy099.mini_instagram.auth.entity;
 import com.nchuy099.mini_instagram.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
+import lombok.experimental.SuperBuilder;
+import com.nchuy099.mini_instagram.common.entity.BaseEntity;
 
 import java.time.ZonedDateTime;
 
@@ -13,12 +14,8 @@ import java.time.ZonedDateTime;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class UserSession {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+@SuperBuilder
+public class UserSession extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
@@ -30,7 +27,7 @@ public class UserSession {
     @Column(name = "user_agent")
     private String userAgent;
 
-    @Column(name = "ip_address")
+    @Column(name = "ip_address", columnDefinition = "inet")
     private String ipAddress;
 
     @Column(name = "expires_at", nullable = false)
@@ -38,8 +35,4 @@ public class UserSession {
 
     @Column(name = "revoked_at")
     private ZonedDateTime revokedAt;
-
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private ZonedDateTime createdAt;
 }

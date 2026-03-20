@@ -8,6 +8,9 @@ import com.nchuy099.mini_instagram.user.entity.User;
 import com.nchuy099.mini_instagram.user.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+
+import java.util.UUID;
+
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -51,8 +54,9 @@ class AuthServiceTest {
         when(userRepository.existsByEmail("test@example.com")).thenReturn(false);
         when(passwordEncoder.encode("password123")).thenReturn("hashedPassword");
         
+        UUID savedUserId = UUID.randomUUID();
         User savedUser = new User();
-        savedUser.setId(1L);
+        savedUser.setId(savedUserId);
         savedUser.setUsername("testuser");
         
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
@@ -60,7 +64,7 @@ class AuthServiceTest {
         User result = authService.registerUser(request);
 
         assertThat(result).isNotNull();
-        assertThat(result.getId()).isEqualTo(1L);
+        assertThat(result.getId()).isEqualTo(savedUserId);
         assertThat(result.getUsername()).isEqualTo("testuser");
         verify(userRepository).save(any(User.class));
     }

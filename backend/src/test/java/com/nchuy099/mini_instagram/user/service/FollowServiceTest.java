@@ -8,6 +8,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+
+import java.util.UUID;
+
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -47,21 +50,23 @@ class FollowServiceTest {
 
     @Test
     void shouldFollowUserAndIncrementCounter() {
+        UUID currentUserId = UUID.randomUUID();
         User currentUser = new User();
-        currentUser.setId(1L);
+        currentUser.setId(currentUserId);
         currentUser.setUsername("currentuser");
         currentUser.setFollowingCount(0);
 
+        UUID targetUserId = UUID.randomUUID();
         User targetUser = new User();
-        targetUser.setId(2L);
+        targetUser.setId(targetUserId);
         targetUser.setUsername("targetuser");
         targetUser.setFollowerCount(0);
 
         when(userRepository.findByUsername("currentuser")).thenReturn(Optional.of(currentUser));
-        when(userRepository.findById(2L)).thenReturn(Optional.of(targetUser));
-        when(followRepository.existsByFollowerIdAndFollowingId(1L, 2L)).thenReturn(false);
+        when(userRepository.findById(targetUserId)).thenReturn(Optional.of(targetUser));
+        when(followRepository.existsByFollowerIdAndFollowingId(currentUserId, targetUserId)).thenReturn(false);
 
-        followService.followUser(2L);
+        followService.followUser(targetUserId);
 
         verify(followRepository).save(any(Follow.class));
         assertThat(currentUser.getFollowingCount()).isEqualTo(1);

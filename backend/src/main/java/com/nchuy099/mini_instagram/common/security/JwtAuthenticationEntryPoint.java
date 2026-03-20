@@ -23,7 +23,11 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
         ApiResponse<?> apiResponse = ApiResponse.builder()
                 .success(false)
-                .message("Unauthorized: " + authException.getMessage())
+                .message("Error")
+                .error(ApiResponse.ErrorDetails.builder()
+                        .code("UNAUTHORIZED")
+                        .message(authException.getMessage())
+                        .build())
                 .build();
 
         response.getWriter().write(objectMapper.writeValueAsString(apiResponse));

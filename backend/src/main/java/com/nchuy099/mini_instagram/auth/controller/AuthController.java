@@ -3,6 +3,7 @@ package com.nchuy099.mini_instagram.auth.controller;
 import com.nchuy099.mini_instagram.auth.dto.AuthResponse;
 import com.nchuy099.mini_instagram.auth.dto.LoginRequest;
 import com.nchuy099.mini_instagram.auth.dto.RegisterRequest;
+import com.nchuy099.mini_instagram.auth.dto.TokenRequest;
 import com.nchuy099.mini_instagram.auth.service.AuthService;
 import com.nchuy099.mini_instagram.common.response.ApiResponse;
 import com.nchuy099.mini_instagram.user.dto.UserDTO;
@@ -34,6 +35,16 @@ public class AuthController {
                 .success(true)
                 .data(token)
                 .message("Logged in successfully")
+                .build());
+    }
+
+    @PostMapping("/refresh-token")
+    public ResponseEntity<ApiResponse<AuthResponse>> refreshToken(@Valid @RequestBody TokenRequest request) {
+        AuthResponse token = authService.refreshToken(request.getRefreshToken());
+        return ResponseEntity.ok(ApiResponse.<AuthResponse>builder()
+                .success(true)
+                .data(token)
+                .message("Token refreshed successfully")
                 .build());
     }
 

@@ -2,8 +2,8 @@ package com.nchuy099.mini_instagram.user.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
+import lombok.experimental.SuperBuilder;
+import com.nchuy099.mini_instagram.common.entity.BaseEntity;
 
 import java.time.ZonedDateTime;
 
@@ -13,12 +13,8 @@ import java.time.ZonedDateTime;
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class User {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+@SuperBuilder
+public class User extends BaseEntity {
 
     @Column(nullable = false, unique = true, length = 30)
     private String username;
@@ -63,12 +59,4 @@ public class User {
     @Column(name = "following_count", nullable = false)
     @Builder.Default
     private Integer followingCount = 0;
-
-    @CreationTimestamp
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private ZonedDateTime createdAt;
-
-    @UpdateTimestamp
-    @Column(name = "updated_at", nullable = false)
-    private ZonedDateTime updatedAt;
 }
