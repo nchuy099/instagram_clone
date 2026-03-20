@@ -73,13 +73,38 @@ public class UserService {
                 .build();
     }
 
+    @Transactional
+    public UserDTO updateUsername(String newUsername) {
+        User currentUser = getCurrentAuthenticatedUser();
+        if (currentUser == null) {
+            throw new IllegalStateException("Authentication required to update username");
+        }
+
+        if (userRepository.existsByUsername(newUsername)) {
+            throw new IllegalArgumentException("Username is already taken");
+        }
+
+        currentUser.setUsername(newUsername);
+        currentUser.setUsernameSet(true);
+        
+        User updatedUser = userRepository.save(currentUser);
+
+        return UserDTO.builder()
+                .id(updatedUser.getId())
+                .username(updatedUser.getUsername())
+                .fullName(updatedUser.getFullName())
+                .avatarUrl(updatedUser.getAvatarUrl())
+                .bio(updatedUser.getBio())
+                .build();
+    }
+
     private User getCurrentAuthenticatedUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
             return null;
         }
 
-        String username = authentication.getName();
-        return userRepository.findByUsername(username).orElse(null);
+        String credential = authentication.getName();
+        return userRepository.findByUsernameOrEmail(credential, credential).orElse(null);
     }
 }

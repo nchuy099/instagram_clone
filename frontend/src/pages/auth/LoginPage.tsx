@@ -29,6 +29,10 @@ export default function LoginPage() {
     }
   };
 
+  const handleFacebookLogin = () => {
+    window.location.href = 'http://localhost:8080/oauth2/authorization/facebook';
+  };
+
   const isFormValid = emailOrUsername.length > 0 && password.length > 0;
 
   return (
@@ -92,6 +96,7 @@ export default function LoginPage() {
             {/* Facebook Login */}
             <button
               type="button"
+              onClick={handleFacebookLogin}
               className="flex items-center justify-center gap-2 mx-auto hover:opacity-70 transition-opacity"
             >
               <svg className="w-4 h-4 text-[#385185] fill-current" viewBox="0 0 24 24">

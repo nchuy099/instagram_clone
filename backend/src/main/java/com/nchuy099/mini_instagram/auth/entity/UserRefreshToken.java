@@ -9,13 +9,13 @@ import com.nchuy099.mini_instagram.common.entity.BaseEntity;
 import java.time.ZonedDateTime;
 
 @Entity
-@Table(name = "user_sessions")
+@Table(name = "user_refresh_tokens")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @SuperBuilder
-public class UserSession extends BaseEntity {
+public class UserRefreshToken extends BaseEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
@@ -27,7 +27,7 @@ public class UserSession extends BaseEntity {
     @Column(name = "user_agent")
     private String userAgent;
 
-    @Column(name = "ip_address", columnDefinition = "inet")
+    @Column(name = "ip_address")
     private String ipAddress;
 
     @Column(name = "expires_at", nullable = false)

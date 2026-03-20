@@ -3,7 +3,9 @@ package com.nchuy099.mini_instagram.user.controller;
 import com.nchuy099.mini_instagram.common.response.ApiResponse;
 import com.nchuy099.mini_instagram.user.dto.ProfileHeaderDTO;
 import com.nchuy099.mini_instagram.user.dto.UpdateProfileRequest;
+import com.nchuy099.mini_instagram.user.dto.UpdateUsernameRequest;
 import com.nchuy099.mini_instagram.user.dto.UserDTO;
+import jakarta.validation.Valid;
 import com.nchuy099.mini_instagram.user.service.FollowService;
 import com.nchuy099.mini_instagram.user.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +38,16 @@ public class UserController {
                 .success(true)
                 .data(updatedUser)
                 .message("Profile updated successfully")
+                .build());
+    }
+
+    @PatchMapping("/users/me/username")
+    public ResponseEntity<ApiResponse<UserDTO>> updateUsername(@Valid @RequestBody UpdateUsernameRequest request) {
+        UserDTO updatedUser = userService.updateUsername(request.getUsername());
+        return ResponseEntity.ok(ApiResponse.<UserDTO>builder()
+                .success(true)
+                .data(updatedUser)
+                .message("Username updated successfully")
                 .build());
     }
 

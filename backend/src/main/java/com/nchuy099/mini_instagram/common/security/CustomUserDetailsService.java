@@ -21,9 +21,14 @@ public class CustomUserDetailsService implements UserDetailsService {
         User user = userRepository.findByUsernameOrEmail(usernameOrEmail, usernameOrEmail)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with username or email: " + usernameOrEmail));
         
+        String password = user.getPasswordHash() != null ? user.getPasswordHash() : "OAUTH2_USER";
+        
+        // Use email as primary key for session, fallback to username
+        String principal = user.getEmail() != null ? user.getEmail() : user.getUsername();
+        
         return new org.springframework.security.core.userdetails.User(
-                user.getUsername(),
-                user.getPasswordHash(),
+                principal,
+                password,
                 new ArrayList<>()
         );
     }

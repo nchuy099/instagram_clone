@@ -56,4 +56,16 @@ public class AuthController {
                 .data(user)
                 .build());
     }
+
+    @PostMapping("/logout")
+    public ResponseEntity<ApiResponse<String>> logout(@RequestBody java.util.Map<String, String> request) {
+        String refreshToken = request.get("refreshToken");
+        if (refreshToken != null) {
+            authService.logout(refreshToken);
+        }
+        return ResponseEntity.ok(ApiResponse.<String>builder()
+                .success(true)
+                .message("Logged out successfully")
+                .build());
+    }
 }

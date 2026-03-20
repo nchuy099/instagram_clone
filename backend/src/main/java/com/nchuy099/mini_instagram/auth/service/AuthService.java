@@ -3,8 +3,8 @@ package com.nchuy099.mini_instagram.auth.service;
 import com.nchuy099.mini_instagram.auth.dto.AuthResponse;
 import com.nchuy099.mini_instagram.auth.dto.LoginRequest;
 import com.nchuy099.mini_instagram.auth.dto.RegisterRequest;
-import com.nchuy099.mini_instagram.auth.entity.UserSession;
-import com.nchuy099.mini_instagram.auth.repository.UserSessionRepository;
+import com.nchuy099.mini_instagram.auth.entity.UserRefreshToken;
+import com.nchuy099.mini_instagram.auth.repository.UserRefreshTokenRepository;
 import com.nchuy099.mini_instagram.common.security.JwtTokenProvider;
 import com.nchuy099.mini_instagram.user.dto.UserDTO;
 import com.nchuy099.mini_instagram.user.entity.User;
@@ -33,7 +33,7 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider tokenProvider;
-    private final UserSessionRepository userSessionRepository;
+    private final UserRefreshTokenRepository userRefreshTokenRepository;
     private final SecureRandom secureRandom = new SecureRandom();
 
     @Transactional
@@ -65,20 +65,25 @@ public class AuthService {
         );
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        String jwt = tokenProvider.generateToken(authentication.getName());
+        return createRefreshTokenForUser(authentication.getName());
+    }
 
-        User user = (User) userRepository.findByUsername(authentication.getName())
+    @Transactional
+    public AuthResponse createRefreshTokenForUser(String credential) {
+        User user = userRepository.findByUsernameOrEmail(credential, credential)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
+        String principal = user.getEmail() != null ? user.getEmail() : user.getUsername();
+        String jwt = tokenProvider.generateToken(principal);
         String refreshToken = generateSecureToken();
         String hashedToken = hashToken(refreshToken);
 
-        UserSession session = UserSession.builder()
+        UserRefreshToken session = UserRefreshToken.builder()
                 .user(user)
                 .refreshTokenHash(hashedToken)
                 .expiresAt(ZonedDateTime.now().plusDays(7)) // 7 days
                 .build();
-        userSessionRepository.save(session);
+        userRefreshTokenRepository.save(session);
 
         return AuthResponse.builder()
                 .accessToken(jwt)
@@ -106,25 +111,38 @@ public class AuthService {
     public AuthResponse refreshToken(String refreshToken) {
         String hashedToken = hashToken(refreshToken);
         
-        UserSession session = userSessionRepository.findByRefreshTokenHash(hashedToken)
+        UserRefreshToken session = userRefreshTokenRepository.findByRefreshTokenHash(hashedToken)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid or expired refresh token"));
 
         if (session.getRevokedAt() != null || session.getExpiresAt().isBefore(ZonedDateTime.now())) {
             throw new IllegalArgumentException("Invalid or expired refresh token");
         }
 
-        String newJwt = tokenProvider.generateToken(session.getUser().getUsername());
+        String principal = session.getUser().getEmail() != null ? session.getUser().getEmail() : session.getUser().getUsername();
+        String newJwt = tokenProvider.generateToken(principal);
         String newRefreshToken = generateSecureToken();
         String newHashedToken = hashToken(newRefreshToken);
         
         session.setRefreshTokenHash(newHashedToken);
         session.setExpiresAt(ZonedDateTime.now().plusDays(7));
-        userSessionRepository.save(session);
+        userRefreshTokenRepository.save(session);
         
         return AuthResponse.builder()
                 .accessToken(newJwt)
                 .refreshToken(newRefreshToken)
                 .build();
+    }
+
+    @Transactional
+    public void logout(String refreshToken) {
+        String hashedToken = hashToken(refreshToken);
+        UserRefreshToken session = userRefreshTokenRepository.findByRefreshTokenHash(hashedToken)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid refresh token"));
+
+        if (session.getRevokedAt() == null) {
+            session.setRevokedAt(ZonedDateTime.now());
+            userRefreshTokenRepository.save(session);
+        }
     }
 
     public UserDTO getCurrentUser() {
@@ -133,8 +151,8 @@ public class AuthService {
             throw new IllegalStateException("No authenticated user found");
         }
 
-        String username = authentication.getName();
-        User user = userRepository.findByUsername(username)
+        String credential = authentication.getName();
+        User user = userRepository.findByUsernameOrEmail(credential, credential)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         return UserDTO.builder()

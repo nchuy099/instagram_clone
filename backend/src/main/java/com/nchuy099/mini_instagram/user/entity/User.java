@@ -59,4 +59,8 @@ public class User extends BaseEntity {
     @Column(name = "following_count", nullable = false)
     @Builder.Default
     private Integer followingCount = 0;
+
+    @Column(name = "is_username_set", nullable = false)
+    @Builder.Default
+    private boolean isUsernameSet = true;
 }

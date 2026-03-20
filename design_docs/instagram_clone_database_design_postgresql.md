@@ -24,7 +24,7 @@ Nguyên tắc thiết kế:
 ### 2.1 Identity
 - `users`
 - `user_auth_providers`
-- `user_sessions`
+- `user_refresh_tokens`
 
 ### 2.2 Social graph
 - `follows`
@@ -79,6 +79,7 @@ create table users (
   post_count integer not null default 0,
   follower_count integer not null default 0,
   following_count integer not null default 0,
+  is_username_set boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -110,20 +111,21 @@ create table user_auth_providers (
 
 ---
 
-## 3.3 user_sessions
+## 3.3 user_refresh_tokens
 
 Lưu refresh token/session.
 
 ```sql
-create table user_sessions (
+create table user_refresh_tokens (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references users(id) on delete cascade,
   refresh_token_hash text not null,
-  ip_address varchar(64),
+  ip_address varchar(45),
   user_agent text,
   expires_at timestamptz not null,
+  revoked_at timestamptz,
   created_at timestamptz not null default now(),
-  revoked_at timestamptz
+  updated_at timestamptz not null default now()
 );
 ```
 
@@ -646,7 +648,7 @@ Lý do:
 
 1. `users`
 2. `user_auth_providers`
-3. `user_sessions`
+3. `user_refresh_tokens`
 4. `follows`
 5. `posts`
 6. `media_assets`
