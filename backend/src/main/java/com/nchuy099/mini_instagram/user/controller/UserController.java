@@ -1,6 +1,7 @@
 package com.nchuy099.mini_instagram.user.controller;
 
 import com.nchuy099.mini_instagram.common.response.ApiResponse;
+import com.nchuy099.mini_instagram.common.response.PagedResponse;
 import com.nchuy099.mini_instagram.user.dto.ProfileHeaderDTO;
 import com.nchuy099.mini_instagram.user.dto.UpdateProfileRequest;
 import com.nchuy099.mini_instagram.user.dto.UpdateUsernameRequest;
@@ -12,6 +13,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Page;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -67,5 +71,19 @@ public class UserController {
                 .success(true)
                 .message("Unfollowed user successfully")
                 .build());
+    }
+
+    @GetMapping("/users/{username}/followers")
+    public ApiResponse<PagedResponse<UserDTO>> getFollowers(
+            @PathVariable String username,
+            Pageable pageable) {
+        return ApiResponse.success(followService.getFollowers(username, pageable));
+    }
+
+    @GetMapping("/users/{username}/following")
+    public ApiResponse<PagedResponse<UserDTO>> getFollowing(
+            @PathVariable String username,
+            Pageable pageable) {
+        return ApiResponse.success(followService.getFollowing(username, pageable));
     }
 }

@@ -1,5 +1,6 @@
 package com.nchuy099.mini_instagram.user.service;
 
+import com.nchuy099.mini_instagram.common.response.PagedResponse;
 import com.nchuy099.mini_instagram.user.dto.UserDTO;
 import com.nchuy099.mini_instagram.user.entity.Follow;
 import com.nchuy099.mini_instagram.user.entity.User;
@@ -11,6 +12,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -44,6 +48,32 @@ public class FollowService {
         }
     }
 
+    @Transactional(readOnly = true)
+    public PagedResponse<UserDTO> getFollowers(String username, Pageable pageable) {
+        Page<UserDTO> page = followRepository.findByFollowingUsername(username, pageable)
+                .map(follow -> UserDTO.builder()
+                        .id(follow.getFollower().getId())
+                        .username(follow.getFollower().getUsername())
+                        .fullName(follow.getFollower().getFullName())
+                        .avatarUrl(follow.getFollower().getAvatarUrl())
+                        .bio(follow.getFollower().getBio())
+                        .build());
+        return PagedResponse.fromPage(page);
+    }
+
+    @Transactional(readOnly = true)
+    public PagedResponse<UserDTO> getFollowing(String username, Pageable pageable) {
+        Page<UserDTO> page = followRepository.findByFollowerUsername(username, pageable)
+                .map(follow -> UserDTO.builder()
+                        .id(follow.getFollowing().getId())
+                        .username(follow.getFollowing().getUsername())
+                        .fullName(follow.getFollowing().getFullName())
+                        .avatarUrl(follow.getFollowing().getAvatarUrl())
+                        .bio(follow.getFollowing().getBio())
+                        .build());
+        return PagedResponse.fromPage(page);
+    }
+
     @Transactional
     public void unfollowUser(UUID targetUserId) {
         User currentUser = getCurrentAuthenticatedUser();
@@ -68,8 +98,8 @@ public class FollowService {
             throw new IllegalStateException("Authentication required");
         }
 
-        String username = authentication.getName();
-        return userRepository.findByUsername(username)
+        String credential = authentication.getName();
+        return userRepository.findByUsernameOrEmailOrPhoneNumber(credential, credential, credential)
                 .orElseThrow(() -> new IllegalStateException("Current user not found"));
     }
 }

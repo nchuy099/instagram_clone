@@ -105,6 +105,6 @@ public class UserService {
         }
 
         String credential = authentication.getName();
-        return userRepository.findByUsernameOrEmail(credential, credential).orElse(null);
+        return userRepository.findByUsernameOrEmailOrPhoneNumber(credential, credential, credential).orElse(null);
     }
 }

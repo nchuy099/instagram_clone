@@ -53,7 +53,7 @@ class AuthControllerTest {
     void shouldRegisterUser() throws Exception {
         RegisterRequest request = new RegisterRequest();
         request.setUsername("testuser");
-        request.setEmail("test@example.com");
+        request.setMobileOrEmail("test@example.com");
         request.setPassword("password123");
         request.setFullName("Test User");
 
@@ -80,10 +80,13 @@ class AuthControllerTest {
     @Test
     void shouldLoginUser() throws Exception {
         LoginRequest request = new LoginRequest();
-        request.setEmailOrUsername("testuser");
+        request.setIdentifier("testuser");
         request.setPassword("password123");
 
-        AuthResponse authResponse = new AuthResponse("mock-access", "mock-refresh");
+        AuthResponse authResponse = AuthResponse.builder()
+                .accessToken("mock-access")
+                .refreshToken("mock-refresh")
+                .build();
         when(authService.authenticateUser(any(LoginRequest.class))).thenReturn(authResponse);
 
         mockMvc.perform(post("/api/auth/login")

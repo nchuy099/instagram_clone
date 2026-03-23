@@ -36,7 +36,7 @@ export default function Sidebar() {
           <PlusSquare size={24} />
           <span className="text-[15px]">Create</span>
         </div>
-        <Link to="/profile/me" className="flex items-center space-x-4 p-3 hover:bg-gray-100 rounded-lg transition">
+        <Link to="/me" className="flex items-center space-x-4 p-3 hover:bg-gray-100 rounded-lg transition">
           <div className="w-6 h-6 rounded-full bg-gray-300 overflow-hidden">
             {user?.avatarUrl ? <img src={user.avatarUrl} alt="avatar" /> : <User size={24} className="text-gray-500" />}
           </div>

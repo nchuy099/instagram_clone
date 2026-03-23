@@ -1,6 +1,8 @@
 package com.nchuy099.mini_instagram.user.service;
 
 import com.nchuy099.mini_instagram.user.dto.ProfileHeaderDTO;
+import com.nchuy099.mini_instagram.user.dto.UpdateProfileRequest;
+import com.nchuy099.mini_instagram.user.dto.UserDTO;
 import com.nchuy099.mini_instagram.user.entity.User;
 import com.nchuy099.mini_instagram.user.repository.FollowRepository;
 import com.nchuy099.mini_instagram.user.repository.UserRepository;
@@ -8,20 +10,19 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-
-import java.util.UUID;
-
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
@@ -35,41 +36,97 @@ class UserServiceTest {
     @InjectMocks
     private UserService userService;
 
-    @BeforeEach
-    void setUp() {
-        UserDetails userDetails = org.springframework.security.core.userdetails.User.withUsername("currentuser").password("").authorities("USER").build();
-        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-        SecurityContextHolder.getContext().setAuthentication(auth);
-    }
-
     @AfterEach
     void tearDown() {
         SecurityContextHolder.clearContext();
     }
 
+    private void authenticateUser(String username) {
+        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(username, null, null);
+        SecurityContextHolder.getContext().setAuthentication(auth);
+    }
+
     @Test
-    void shouldReturnProfileWithFollowStatus() {
-        UUID currentUserId = UUID.randomUUID();
-        User currentUser = new User();
-        currentUser.setId(currentUserId);
-        currentUser.setUsername("currentuser");
+    void getUserProfile_WhenUserExists_ShouldReturnProfile() {
+        String targetUsername = "targetuser";
+        User targetUser = User.builder()
+                .id(UUID.randomUUID())
+                .username(targetUsername)
+                .fullName("Target Full Name")
+                .followerCount(10)
+                .build();
 
-        UUID targetUserId = UUID.randomUUID();
-        User targetUser = new User();
-        targetUser.setId(targetUserId);
-        targetUser.setUsername("targetuser");
-        targetUser.setFollowerCount(10);
+        when(userRepository.findByUsername(targetUsername)).thenReturn(Optional.of(targetUser));
+        
+        // Scenario 1: Unauthenticated
+        SecurityContextHolder.clearContext();
+        ProfileHeaderDTO profileAnon = userService.getUserProfile(targetUsername);
+        assertThat(profileAnon.getUsername()).isEqualTo(targetUsername);
+        assertThat(profileAnon.getIsFollowing()).isFalse();
+        assertThat(profileAnon.getIsOwnProfile()).isFalse();
 
-        when(userRepository.findByUsername("currentuser")).thenReturn(Optional.of(currentUser));
-        when(userRepository.findByUsername("targetuser")).thenReturn(Optional.of(targetUser));
-        when(followRepository.existsByFollowerIdAndFollowingId(currentUserId, targetUserId)).thenReturn(true);
+        // Scenario 2: Authenticated, looking at others
+        authenticateUser("currentuser");
+        User currentUser = User.builder().id(UUID.randomUUID()).username("currentuser").build();
+        when(userRepository.findByUsernameOrEmailOrPhoneNumber("currentuser", "currentuser", "currentuser")).thenReturn(Optional.of(currentUser));
+        when(followRepository.existsByFollowerIdAndFollowingId(currentUser.getId(), targetUser.getId())).thenReturn(true);
+        
+        ProfileHeaderDTO profileAuth = userService.getUserProfile(targetUsername);
+        assertThat(profileAuth.getIsFollowing()).isTrue();
+        assertThat(profileAuth.getIsOwnProfile()).isFalse();
 
-        ProfileHeaderDTO profile = userService.getUserProfile("targetuser");
+        // Scenario 3: Looking at own profile
+        authenticateUser(targetUsername);
+        when(userRepository.findByUsernameOrEmailOrPhoneNumber(targetUsername, targetUsername, targetUsername)).thenReturn(Optional.of(targetUser));
+        
+        ProfileHeaderDTO ownProfile = userService.getUserProfile(targetUsername);
+        assertThat(ownProfile.getIsOwnProfile()).isTrue();
+    }
 
-        assertThat(profile).isNotNull();
-        assertThat(profile.getUsername()).isEqualTo("targetuser");
-        assertThat(profile.getIsFollowing()).isTrue();
-        assertThat(profile.getIsOwnProfile()).isFalse();
-        assertThat(profile.getFollowerCount()).isEqualTo(10);
+    @Test
+    void getUserProfile_WhenUserNotFound_ShouldThrowException() {
+        when(userRepository.findByUsername("none")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> userService.getUserProfile("none"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("User not found");
+    }
+
+    @Test
+    void updateProfile_WhenAuthenticated_ShouldUpdateFields() {
+        authenticateUser("me");
+        User me = User.builder().id(UUID.randomUUID()).username("me").build();
+        when(userRepository.findByUsernameOrEmailOrPhoneNumber("me", "me", "me")).thenReturn(Optional.of(me));
+        when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArguments()[0]);
+
+        UpdateProfileRequest request = new UpdateProfileRequest();
+        request.setFullName("Updated Name");
+        request.setBio("Updated Bio");
+
+        UserDTO result = userService.updateProfile(request);
+
+        assertThat(result.getFullName()).isEqualTo("Updated Name");
+        assertThat(me.getBio()).isEqualTo("Updated Bio");
+        verify(userRepository).save(me);
+    }
+
+    @Test
+    void updateProfile_WhenUnauthenticated_ShouldThrowException() {
+        SecurityContextHolder.clearContext();
+        assertThatThrownBy(() -> userService.updateProfile(new UpdateProfileRequest()))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("Authentication required to update profile");
+    }
+
+    @Test
+    void updateUsername_WhenTargetTaken_ShouldThrowException() {
+        authenticateUser("me");
+        User me = User.builder().id(UUID.randomUUID()).username("me").build();
+        when(userRepository.findByUsernameOrEmailOrPhoneNumber("me", "me", "me")).thenReturn(Optional.of(me));
+        when(userRepository.existsByUsername("taken")).thenReturn(true);
+
+        assertThatThrownBy(() -> userService.updateUsername("taken"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Username is already taken");
     }
 }

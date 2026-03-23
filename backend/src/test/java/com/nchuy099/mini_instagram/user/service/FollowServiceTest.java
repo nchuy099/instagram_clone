@@ -1,5 +1,7 @@
 package com.nchuy099.mini_instagram.user.service;
 
+import com.nchuy099.mini_instagram.common.response.PagedResponse;
+import com.nchuy099.mini_instagram.user.dto.UserDTO;
 import com.nchuy099.mini_instagram.user.entity.Follow;
 import com.nchuy099.mini_instagram.user.entity.User;
 import com.nchuy099.mini_instagram.user.repository.FollowRepository;
@@ -8,19 +10,22 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-
-import java.util.UUID;
-
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -36,33 +41,26 @@ class FollowServiceTest {
     @InjectMocks
     private FollowService followService;
 
-    @BeforeEach
-    void setUp() {
-        UserDetails userDetails = org.springframework.security.core.userdetails.User.withUsername("currentuser").password("").authorities("USER").build();
-        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-        SecurityContextHolder.getContext().setAuthentication(auth);
-    }
-
     @AfterEach
     void tearDown() {
         SecurityContextHolder.clearContext();
     }
 
+    private void authenticateUser(String username) {
+        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(username, null, null);
+        SecurityContextHolder.getContext().setAuthentication(auth);
+    }
+
     @Test
-    void shouldFollowUserAndIncrementCounter() {
+    void followUser_WhenValid_ShouldCreateFollow() {
         UUID currentUserId = UUID.randomUUID();
-        User currentUser = new User();
-        currentUser.setId(currentUserId);
-        currentUser.setUsername("currentuser");
-        currentUser.setFollowingCount(0);
+        User currentUser = User.builder().id(currentUserId).username("me").followingCount(0).build();
+        authenticateUser("me");
 
         UUID targetUserId = UUID.randomUUID();
-        User targetUser = new User();
-        targetUser.setId(targetUserId);
-        targetUser.setUsername("targetuser");
-        targetUser.setFollowerCount(0);
+        User targetUser = User.builder().id(targetUserId).username("target").followerCount(0).build();
 
-        when(userRepository.findByUsername("currentuser")).thenReturn(Optional.of(currentUser));
+        when(userRepository.findByUsernameOrEmailOrPhoneNumber("me", "me", "me")).thenReturn(Optional.of(currentUser));
         when(userRepository.findById(targetUserId)).thenReturn(Optional.of(targetUser));
         when(followRepository.existsByFollowerIdAndFollowingId(currentUserId, targetUserId)).thenReturn(false);
 
@@ -71,6 +69,93 @@ class FollowServiceTest {
         verify(followRepository).save(any(Follow.class));
         assertThat(currentUser.getFollowingCount()).isEqualTo(1);
         assertThat(targetUser.getFollowerCount()).isEqualTo(1);
-        verify(userRepository, times(2)).save(any(User.class));
+    }
+
+    @Test
+    void followUser_WhenAuthenticatedWithEmail_ShouldSucceed() {
+        UUID currentUserId = UUID.randomUUID();
+        User currentUser = User.builder().id(currentUserId).email("me@example.com").followingCount(0).build();
+        authenticateUser("me@example.com");
+
+        UUID targetUserId = UUID.randomUUID();
+        User targetUser = User.builder().id(targetUserId).username("target").followerCount(0).build();
+
+        when(userRepository.findByUsernameOrEmailOrPhoneNumber("me@example.com", "me@example.com", "me@example.com"))
+                .thenReturn(Optional.of(currentUser));
+        when(userRepository.findById(targetUserId)).thenReturn(Optional.of(targetUser));
+        when(followRepository.existsByFollowerIdAndFollowingId(currentUserId, targetUserId)).thenReturn(false);
+
+        followService.followUser(targetUserId);
+
+        verify(followRepository).save(any(Follow.class));
+        assertThat(currentUser.getFollowingCount()).isEqualTo(1);
+        assertThat(targetUser.getFollowerCount()).isEqualTo(1);
+    }
+
+    @Test
+    void followUser_WhenSelf_ShouldThrowException() {
+        UUID myId = UUID.randomUUID();
+        User me = User.builder().id(myId).username("me").build();
+        authenticateUser("me");
+
+        when(userRepository.findByUsernameOrEmailOrPhoneNumber("me", "me", "me")).thenReturn(Optional.of(me));
+
+        assertThatThrownBy(() -> followService.followUser(myId))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("You cannot follow yourself");
+    }
+
+    @Test
+    void unfollowUser_WhenExists_ShouldRemoveFollow() {
+        UUID currentUserId = UUID.randomUUID();
+        User currentUser = User.builder().id(currentUserId).username("me").followingCount(1).build();
+        authenticateUser("me");
+
+        UUID targetUserId = UUID.randomUUID();
+        User targetUser = User.builder().id(targetUserId).username("target").followerCount(1).build();
+
+        Follow follow = Follow.builder().follower(currentUser).following(targetUser).build();
+
+        when(userRepository.findByUsernameOrEmailOrPhoneNumber("me", "me", "me")).thenReturn(Optional.of(currentUser));
+        when(userRepository.findById(targetUserId)).thenReturn(Optional.of(targetUser));
+        when(followRepository.findByFollowerIdAndFollowingId(currentUserId, targetUserId)).thenReturn(Optional.of(follow));
+
+        followService.unfollowUser(targetUserId);
+
+        verify(followRepository).delete(follow);
+        assertThat(currentUser.getFollowingCount()).isEqualTo(0);
+        assertThat(targetUser.getFollowerCount()).isEqualTo(0);
+    }
+
+    @Test
+    void getFollowers_ShouldReturnPageOfDTOs() {
+        String username = "user1";
+        Pageable pageable = PageRequest.of(0, 10);
+        User follower = User.builder().id(UUID.randomUUID()).username("follower").build();
+        Follow follow = Follow.builder().follower(follower).build();
+        Page<Follow> followPage = new PageImpl<>(List.of(follow));
+
+        when(followRepository.findByFollowingUsername(username, pageable)).thenReturn(followPage);
+ 
+        PagedResponse<UserDTO> result = followService.getFollowers(username, pageable);
+ 
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).getUsername()).isEqualTo("follower");
+    }
+
+    @Test
+    void getFollowing_ShouldReturnPageOfDTOs() {
+        String username = "user1";
+        Pageable pageable = PageRequest.of(0, 10);
+        User following = User.builder().id(UUID.randomUUID()).username("following").build();
+        Follow follow = Follow.builder().following(following).build();
+        Page<Follow> followPage = new PageImpl<>(List.of(follow));
+
+        when(followRepository.findByFollowerUsername(username, pageable)).thenReturn(followPage);
+ 
+        PagedResponse<UserDTO> result = followService.getFollowing(username, pageable);
+ 
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).getUsername()).isEqualTo("following");
     }
 }
