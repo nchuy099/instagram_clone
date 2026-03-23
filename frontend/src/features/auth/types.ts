@@ -4,6 +4,8 @@ export interface User {
   fullName: string;
   avatarUrl: string;
   bio: string;
+  websiteUrl?: string;
+  isPrivate?: boolean;
 }
 
 export interface AuthResponse {

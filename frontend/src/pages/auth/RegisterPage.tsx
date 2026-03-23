@@ -25,6 +25,7 @@ export default function RegisterPage() {
     try {
       await api.post('/auth/register', { mobileOrEmail, fullName, username, password });
       navigate('/login');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       const data = err.response?.data;
       const errorDetails = data?.error?.details || data?.details;

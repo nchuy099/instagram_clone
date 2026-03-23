@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import UserListModal from './UserListModal';
 
 interface ProfileHeaderProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   profile: any;
   onToggleFollow: () => void;
 }

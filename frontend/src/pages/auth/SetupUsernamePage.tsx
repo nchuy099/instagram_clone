@@ -20,6 +20,7 @@ export default function SetupUsernamePage() {
       const resp = await api.patch('/users/me/username', { username });
       setUser(resp.data.data);
       navigate('/');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to update username');
     } finally {

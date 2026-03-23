@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { createContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import api from '../../lib/axios';
@@ -28,7 +29,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         const response = await api.get('/auth/me');
         setUser(response.data.data);
-      } catch (error) {
+      } catch {
         localStorage.removeItem('accessToken');
       } finally {
         setIsLoading(false);

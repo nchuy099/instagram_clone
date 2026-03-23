@@ -2,6 +2,8 @@ package com.nchuy099.mini_instagram.user.controller;
 
 import com.nchuy099.mini_instagram.common.response.ApiResponse;
 import com.nchuy099.mini_instagram.common.response.PagedResponse;
+import com.nchuy099.mini_instagram.post.dto.PostDTO;
+import com.nchuy099.mini_instagram.post.service.PostService;
 import com.nchuy099.mini_instagram.user.dto.ProfileHeaderDTO;
 import com.nchuy099.mini_instagram.user.dto.UpdateProfileRequest;
 import com.nchuy099.mini_instagram.user.dto.UpdateUsernameRequest;
@@ -25,6 +27,7 @@ public class UserController {
 
     private final UserService userService;
     private final FollowService followService;
+    private final PostService postService;
 
     @GetMapping("/users/{username}")
     public ResponseEntity<ApiResponse<ProfileHeaderDTO>> getUserProfile(@PathVariable String username) {
@@ -85,5 +88,13 @@ public class UserController {
             @PathVariable String username,
             Pageable pageable) {
         return ApiResponse.success(followService.getFollowing(username, pageable));
+    }
+
+    @GetMapping("/users/{username}/posts")
+    public ApiResponse<PagedResponse<PostDTO>> getUserPosts(
+            @PathVariable String username,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ApiResponse.success(postService.getUserPosts(username, page, size));
     }
 }

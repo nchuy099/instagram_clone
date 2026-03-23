@@ -8,6 +8,7 @@ import OAuth2CallbackPage from './pages/auth/OAuth2CallbackPage';
 import SetupUsernamePage from './pages/auth/SetupUsernamePage';
 import ProfilePage from './pages/profile/ProfilePage';
 import EditProfilePage from './pages/accounts/EditProfilePage';
+import HomePage from './pages/HomePage';
 
 const ProtectedRoute = ({ children }: { children: ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -43,10 +44,9 @@ function App() {
               </ProtectedRoute>
             } 
           />
-          {/* Default route redirects to personal profile if authenticated, or falls back to protected route block */}
           <Route path="/" element={
             <ProtectedRoute>
-              <Navigate to="/me" />
+              <HomePage />
             </ProtectedRoute>
           } />
         </Routes>

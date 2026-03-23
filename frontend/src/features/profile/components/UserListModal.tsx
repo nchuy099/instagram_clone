@@ -12,16 +12,24 @@ interface UserListModalProps {
 }
 
 export default function UserListModal({ isOpen, onClose, title, username, type }: UserListModalProps) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [users, setUsers] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen && username) {
-      setIsLoading(true);
-      api.get(`/users/${username}/${type}`)
-        .then(res => setUsers(res.data.data.content))
-        .catch(err => console.error(err))
-        .finally(() => setIsLoading(false));
+      const fetchUsers = async () => {
+        setIsLoading(true);
+        try {
+          const res = await api.get(`/users/${username}/${type}`);
+          setUsers(res.data.data.content);
+        } catch (err) {
+          console.error(err);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      fetchUsers();
     }
   }, [isOpen, username, type]);
 
@@ -45,6 +53,7 @@ export default function UserListModal({ isOpen, onClose, title, username, type }
             <div className="text-center text-gray-500 py-10">No {type} yet.</div>
           ) : (
             <div className="space-y-4">
+              {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
               {users.map((user: any) => (
                 <div key={user.id} className="flex items-center justify-between">
                   <Link to={`/${user.username}`} onClick={onClose} className="flex items-center flex-1">

@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+
 import api from '../../lib/axios';
 import { useAuth } from '../../hooks/useAuth';
 import MainLayout from '../../components/layout/MainLayout';
-import { User, Camera } from 'lucide-react';
+import { User } from 'lucide-react';
 
 export default function EditProfilePage() {
   const { user, setUser } = useAuth();
-  const navigate = useNavigate();
+
 
   const [fullName, setFullName] = useState(user?.fullName || '');
   const [username, setUsername] = useState(user?.username || '');
@@ -47,6 +47,7 @@ export default function EditProfilePage() {
 
       setUser(response.data.data);
       setMessage({ type: 'success', text: 'Profile saved.' });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       setMessage({ 
         type: 'error', 

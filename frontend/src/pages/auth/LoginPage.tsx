@@ -28,6 +28,7 @@ export default function LoginPage() {
       const response = await api.post('/auth/login', { identifier: emailOrUsername, password });
       await login(response.data.data);
       navigate('/');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (err: any) {
       const data = err.response?.data;
       const errorDetails = data?.error?.details || data?.details;

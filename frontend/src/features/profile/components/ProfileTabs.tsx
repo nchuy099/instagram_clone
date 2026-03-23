@@ -1,29 +1,48 @@
 import { Grid, Bookmark, PlaySquare } from 'lucide-react';
+import PostGrid from '../../post/components/PostGrid';
+import type { Post } from '../../post/types';
 
-export default function ProfileTabs() {
+interface ProfileTabsProps {
+  activeTab: 'posts' | 'saved' | 'tagged';
+  onTabChange: (tab: 'posts' | 'saved' | 'tagged') => void;
+  showSaved?: boolean;
+}
+
+export default function ProfileTabs({ activeTab, onTabChange, showSaved = false }: ProfileTabsProps) {
   return (
     <div className="flex flex-col items-center">
-      <div className="flex space-x-12 uppercase text-xs font-semibold text-gray-500 tracking-widest">
-        <div className="flex items-center space-x-1.5 border-t border-gray-900 pt-4 -mt-[1px] text-gray-900 cursor-pointer">
+      <div className="flex space-x-12 uppercase text-xs font-semibold tracking-widest border-t border-gray-300 w-full justify-center">
+        <div 
+          onClick={() => onTabChange('posts')}
+          className={`flex items-center space-x-1.5 pt-4 -mt-[1px] cursor-pointer transition ${
+            activeTab === 'posts' ? 'border-t border-gray-900 text-gray-900' : 'text-gray-500 hover:text-gray-900'
+          }`}
+        >
           <Grid size={14} />
           <span>Posts</span>
         </div>
-        <div className="flex items-center space-x-1.5 pt-4 text-gray-500 hover:text-gray-900 cursor-pointer transition">
-          <Bookmark size={14} />
-          <span className="hidden sm:inline">Saved</span>
-        </div>
-        <div className="flex items-center space-x-1.5 pt-4 text-gray-500 hover:text-gray-900 cursor-pointer transition">
+        
+        {showSaved && (
+          <div 
+            onClick={() => onTabChange('saved')}
+            className={`flex items-center space-x-1.5 pt-4 -mt-[1px] cursor-pointer transition ${
+              activeTab === 'saved' ? 'border-t border-gray-900 text-gray-900' : 'text-gray-500 hover:text-gray-900'
+            }`}
+          >
+            <Bookmark size={14} />
+            <span className="hidden sm:inline">Saved</span>
+          </div>
+        )}
+
+        <div 
+          onClick={() => onTabChange('tagged')}
+          className={`flex items-center space-x-1.5 pt-4 -mt-[1px] cursor-pointer transition ${
+            activeTab === 'tagged' ? 'border-t border-gray-900 text-gray-900' : 'text-gray-500 hover:text-gray-900'
+          }`}
+        >
           <PlaySquare size={14} />
           <span className="hidden sm:inline">Tagged</span>
         </div>
-      </div>
-      
-      <div className="mt-16 text-center text-gray-500 pb-20">
-        <div className="w-16 h-16 border-2 border-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Grid size={32} className="text-gray-800" />
-        </div>
-        <h2 className="text-2xl font-extrabold text-gray-900 mb-2 mt-6">No Posts Yet</h2>
-        <p className="max-w-xs mx-auto text-sm">When they share posts, they will appear on their profile.</p>
       </div>
     </div>
   );
