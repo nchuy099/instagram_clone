@@ -9,6 +9,9 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.authentication.BadCredentialsException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -50,6 +53,26 @@ public class GlobalExceptionHandler {
                         .error(ApiResponse.ErrorDetails.builder()
                                 .code("FORBIDDEN")
                                 .message("Access Denied: " + ex.getMessage())
+                                .build())
+                        .build());
+    }
+
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleAuthenticationException(AuthenticationException ex) {
+        String message = ex.getMessage();
+        if (ex instanceof BadCredentialsException) {
+            message = "Invalid password. Please try again.";
+        } else if (ex instanceof UsernameNotFoundException) {
+            message = "User not found with the provided identifier.";
+        }
+        
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.<Void>builder()
+                        .success(false)
+                        .message("Authentication Error")
+                        .error(ApiResponse.ErrorDetails.builder()
+                                .code("UNAUTHORIZED")
+                                .message(message)
                                 .build())
                         .build());
     }

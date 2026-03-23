@@ -2,17 +2,17 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../../lib/axios';
 
-const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 const DAYS = Array.from({ length: 31 }, (_, i) => i + 1);
 const YEARS = Array.from({ length: 120 }, (_, i) => new Date().getFullYear() - i);
 
 export default function RegisterPage() {
-  const [email, setEmail] = useState('');
+  const [mobileOrEmail, setMobileOrEmail] = useState('');
   const [fullName, setFullName] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
+  const [errors, setErrors] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const navigate = useNavigate();
@@ -20,19 +20,27 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
+    setErrors([]);
+
     try {
-      await api.post('/auth/register', { email, fullName, username, password });
+      await api.post('/auth/register', { mobileOrEmail, fullName, username, password });
       navigate('/login');
     } catch (err: any) {
-      const errorMsg = err.response?.data?.error?.message || err.response?.data?.message || 'Registration failed. Please try again.';
-      setError(errorMsg);
+      const data = err.response?.data;
+      const errorDetails = data?.error?.details || data?.details;
+
+      if (errorDetails && typeof errorDetails === 'object') {
+        const detailMsgs = Object.values(errorDetails) as string[];
+        setErrors(detailMsgs);
+      } else {
+        const errorMsg = data?.error?.message || data?.message || 'Registration failed. Please try again.';
+        setErrors([errorMsg]);
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
-  const isFormValid = email && username && password.length >= 6;
 
   return (
     <div className="min-h-screen flex flex-col justify-center items-center bg-white md:bg-[#fafafa] py-12 px-4 selection:bg-blue-100 font-sans text-black">
@@ -41,7 +49,7 @@ export default function RegisterPage() {
         {/* Logo and Form Box */}
         <div className="bg-white px-10 pt-10 pb-5 md:border border-[#dbdbdb] rounded-[1px] flex flex-col items-center">
           <h1 className="text-[32px] font-bold text-black mb-6 tracking-tighter">Instagram</h1>
-          
+
           <p className="text-[#8e8e8e] text-[17px] font-semibold text-center leading-[20px] mb-8">
             Sign up to see photos and videos from your friends.
           </p>
@@ -49,12 +57,12 @@ export default function RegisterPage() {
           <form onSubmit={handleSubmit} className="w-full flex flex-col gap-[6px]">
             <input
               id="email"
-              type="email"
+              type="text"
               required
               className="w-full px-2.5 py-[9px] border border-[#dbdbdb] rounded-[3px] bg-[#fafafa] text-[12px] text-black placeholder-[#8e8e8e] focus:outline-none focus:border-[#a8a8a8]"
               placeholder="Mobile number or email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={mobileOrEmail}
+              onChange={(e) => setMobileOrEmail(e.target.value)}
             />
             <input
               id="fullName"
@@ -120,17 +128,22 @@ export default function RegisterPage() {
             {/* Sign Up Button */}
             <button
               type="submit"
-              disabled={isLoading || !isFormValid}
-              className={`w-full mt-2 py-[5px] text-white text-[14px] font-semibold rounded-[8px] transition-colors ${
-                isFormValid ? 'bg-[#0095f6] hover:bg-[#1877f2]' : 'bg-[#b2dffc] cursor-default'
-              }`}
+              disabled={isLoading}
+              className={`w-full mt-2 py-[5px] text-white text-[14px] font-semibold rounded-[8px] transition-colors bg-[#0095f6] hover:bg-[#1877f2] ${isLoading ? 'opacity-70 cursor-default' : ''
+                }`}
             >
               {isLoading ? 'Signing up...' : 'Sign Up'}
             </button>
 
-            {error && (
-              <p className="text-[#ed4956] text-[14px] text-center mt-4">{error}</p>
+            {errors.length > 0 && (
+              <div className="mt-4 flex flex-col gap-1">
+                {errors.map((err, index) => (
+                  <p key={index} className="text-[#ed4956] text-[14px] text-center">{err}</p>
+                ))}
+              </div>
             )}
+
+
 
             {/* Terms */}
             <p className="text-[12px] text-[#8e8e8e] text-center mt-6 leading-4">

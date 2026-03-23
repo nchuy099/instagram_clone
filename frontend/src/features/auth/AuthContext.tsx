@@ -38,13 +38,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     fetchUser();
   }, []);
 
-  const login = (data: AuthResponse) => {
+  const login = async (data: AuthResponse) => {
     localStorage.setItem('accessToken', data.accessToken);
     if (data.refreshToken) {
       localStorage.setItem('refreshToken', data.refreshToken);
     }
-    // Re-fetch user info after setting token
-    api.get('/auth/me').then(res => setUser(res.data.data)).catch(console.error);
+    // Re-fetch user info after setting token, and wait for it
+    try {
+      const res = await api.get('/auth/me');
+      setUser(res.data.data);
+    } catch (err) {
+      console.error('Failed to fetch user after login', err);
+      throw err;
+    }
   };
 
   const logout = async () => {

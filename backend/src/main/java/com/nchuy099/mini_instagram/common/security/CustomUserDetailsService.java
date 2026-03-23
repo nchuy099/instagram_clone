@@ -17,9 +17,9 @@ public class CustomUserDetailsService implements UserDetailsService {
     private final UserRepository userRepository;
 
     @Override
-    public UserDetails loadUserByUsername(String usernameOrEmail) throws UsernameNotFoundException {
-        User user = userRepository.findByUsernameOrEmail(usernameOrEmail, usernameOrEmail)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with username or email: " + usernameOrEmail));
+    public UserDetails loadUserByUsername(String identifier) throws UsernameNotFoundException {
+        User user = userRepository.findByUsernameOrEmailOrPhoneNumber(identifier, identifier, identifier)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found with identifier: " + identifier));
         
         String password = user.getPasswordHash() != null ? user.getPasswordHash() : "OAUTH2_USER";
         

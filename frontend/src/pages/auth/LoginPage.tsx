@@ -7,7 +7,7 @@ export default function LoginPage() {
   const [emailOrUsername, setEmailOrUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
+  const [errors, setErrors] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const { login } = useAuth();
@@ -16,14 +16,29 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
+    setErrors([]);
+
+    if (!emailOrUsername.trim() || !password.trim()) {
+      setErrors(['Please fill in all fields.']);
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const response = await api.post('/auth/login', { emailOrUsername, password });
-      login(response.data.data);
+      const response = await api.post('/auth/login', { identifier: emailOrUsername, password });
+      await login(response.data.data);
       navigate('/');
     } catch (err: any) {
-      const errorMsg = err.response?.data?.error?.message || err.response?.data?.message || 'Sorry, your password was incorrect. Please double-check your password.';
-      setError(errorMsg);
+      const data = err.response?.data;
+      const errorDetails = data?.error?.details || data?.details;
+
+      if (errorDetails && typeof errorDetails === 'object') {
+        const detailMsgs = Object.values(errorDetails) as string[];
+        setErrors(detailMsgs);
+      } else {
+        const errorMsg = data?.error?.message || data?.message || 'Sorry, your password was incorrect. Please double-check your password.';
+        setErrors([errorMsg]);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -33,7 +48,6 @@ export default function LoginPage() {
     window.location.href = 'http://localhost:8080/oauth2/authorization/facebook';
   };
 
-  const isFormValid = emailOrUsername.length > 0 && password.length > 0;
 
   return (
     <div className="min-h-screen flex flex-col justify-center items-center bg-white md:bg-[#fafafa] py-12 px-4 selection:bg-blue-100 font-sans text-black">
@@ -42,7 +56,7 @@ export default function LoginPage() {
         {/* Logo and Form Box */}
         <div className="bg-white px-10 pt-10 pb-5 md:border border-[#dbdbdb] rounded-[1px] flex flex-col items-center">
           <h1 className="text-[32px] font-bold text-black mb-8 tracking-tighter">Instagram</h1>
-          
+
           <form onSubmit={handleSubmit} className="w-full flex flex-col gap-[6px]">
             <input
               id="emailOrUsername"
@@ -78,13 +92,20 @@ export default function LoginPage() {
 
             <button
               type="submit"
-              disabled={isLoading || !isFormValid}
-              className={`w-full mt-2 py-[5px] text-white text-[14px] font-semibold rounded-[8px] transition-colors ${
-                isFormValid ? 'bg-[#0095f6] hover:bg-[#1877f2]' : 'bg-[#b2dffc] cursor-default'
-              }`}
+              disabled={isLoading}
+              className={`w-full mt-2 py-[5px] text-white text-[14px] font-semibold rounded-[8px] transition-colors bg-[#0095f6] hover:bg-[#1877f2] ${isLoading ? 'opacity-70 cursor-default' : ''
+                }`}
             >
               {isLoading ? 'Logging in...' : 'Log in'}
             </button>
+
+            {errors.length > 0 && (
+              <div className="mt-4 flex flex-col gap-1">
+                {errors.map((err, index) => (
+                  <p key={index} className="text-[#ed4956] text-[14px] text-center">{err}</p>
+                ))}
+              </div>
+            )}
 
             {/* OR Divider */}
             <div className="flex items-center w-full my-4">
@@ -100,14 +121,12 @@ export default function LoginPage() {
               className="flex items-center justify-center gap-2 mx-auto hover:opacity-70 transition-opacity"
             >
               <svg className="w-4 h-4 text-[#385185] fill-current" viewBox="0 0 24 24">
-                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
               </svg>
               <span className="text-[14px] font-semibold text-[#385185]">Log in with Facebook</span>
             </button>
 
-            {error && (
-              <p className="text-[#ed4956] text-[14px] text-center mt-4">{error}</p>
-            )}
+
 
             {/* Forgot password */}
             <div className="text-center mt-3">

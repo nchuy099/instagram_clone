@@ -42,27 +42,48 @@ public class AuthService {
             throw new IllegalArgumentException("Username is already taken!");
         }
 
-        if (userRepository.existsByEmail(registerRequest.getEmail())) {
-            throw new IllegalArgumentException("Email is already in use!");
+        String mobileOrEmail = registerRequest.getMobileOrEmail();
+        String email = null;
+        String phoneNumber = null;
+
+        if (isEmail(mobileOrEmail)) {
+            email = mobileOrEmail;
+            if (userRepository.existsByEmail(email)) {
+                throw new IllegalArgumentException("Email is already in use!");
+            }
+        } else if (isPhoneNumber(mobileOrEmail)) {
+            phoneNumber = mobileOrEmail;
+            if (userRepository.existsByPhoneNumber(phoneNumber)) {
+                throw new IllegalArgumentException("Phone number is already in use!");
+            }
+        } else {
+            throw new IllegalArgumentException("Invalid mobile number or email format!");
         }
 
         User user = User.builder()
                 .username(registerRequest.getUsername())
                 .fullName(registerRequest.getFullName())
-                .email(registerRequest.getEmail())
+                .email(email)
+                .phoneNumber(phoneNumber)
                 .passwordHash(passwordEncoder.encode(registerRequest.getPassword()))
                 .build();
 
         return userRepository.save(user);
     }
 
+    private boolean isEmail(String input) {
+        return input.matches("^[A-Za-z0-9+_.-]+@(.+)$");
+    }
+
+    private boolean isPhoneNumber(String input) {
+        return input.matches("^\\+?[0-9]{10,15}$");
+    }
+
     public AuthResponse authenticateUser(LoginRequest loginRequest) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
-                        loginRequest.getEmailOrUsername(),
-                        loginRequest.getPassword()
-                )
-        );
+                        loginRequest.getIdentifier(),
+                        loginRequest.getPassword()));
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
         return createRefreshTokenForUser(authentication.getName());
@@ -70,10 +91,10 @@ public class AuthService {
 
     @Transactional
     public AuthResponse createRefreshTokenForUser(String credential) {
-        User user = userRepository.findByUsernameOrEmail(credential, credential)
+        User user = userRepository.findByUsernameOrEmailOrPhoneNumber(credential, credential, credential)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        String principal = user.getEmail() != null ? user.getEmail() : user.getUsername();
+        String principal = user.getEmail() != null ? user.getEmail() : user.getUsername() != null ? user.getUsername() : user.getPhoneNumber();
         String jwt = tokenProvider.generateToken(principal);
         String refreshToken = generateSecureToken();
         String hashedToken = hashToken(refreshToken);
@@ -88,6 +109,7 @@ public class AuthService {
         return AuthResponse.builder()
                 .accessToken(jwt)
                 .refreshToken(refreshToken)
+                .phoneNumber(user.getPhoneNumber())
                 .build();
     }
 
@@ -110,7 +132,7 @@ public class AuthService {
     @Transactional
     public AuthResponse refreshToken(String refreshToken) {
         String hashedToken = hashToken(refreshToken);
-        
+
         UserRefreshToken session = userRefreshTokenRepository.findByRefreshTokenHash(hashedToken)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid or expired refresh token"));
 
@@ -118,15 +140,16 @@ public class AuthService {
             throw new IllegalArgumentException("Invalid or expired refresh token");
         }
 
-        String principal = session.getUser().getEmail() != null ? session.getUser().getEmail() : session.getUser().getUsername();
+        String principal = session.getUser().getEmail() != null ? session.getUser().getEmail()
+                : session.getUser().getUsername() != null ? session.getUser().getUsername() : session.getUser().getPhoneNumber();
         String newJwt = tokenProvider.generateToken(principal);
         String newRefreshToken = generateSecureToken();
         String newHashedToken = hashToken(newRefreshToken);
-        
+
         session.setRefreshTokenHash(newHashedToken);
         session.setExpiresAt(ZonedDateTime.now().plusDays(7));
         userRefreshTokenRepository.save(session);
-        
+
         return AuthResponse.builder()
                 .accessToken(newJwt)
                 .refreshToken(newRefreshToken)
@@ -147,12 +170,13 @@ public class AuthService {
 
     public UserDTO getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
+        if (authentication == null || !authentication.isAuthenticated()
+                || "anonymousUser".equals(authentication.getPrincipal())) {
             throw new IllegalStateException("No authenticated user found");
         }
 
         String credential = authentication.getName();
-        User user = userRepository.findByUsernameOrEmail(credential, credential)
+        User user = userRepository.findByUsernameOrEmailOrPhoneNumber(credential, credential, credential)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
         return UserDTO.builder()
@@ -161,6 +185,7 @@ public class AuthService {
                 .fullName(user.getFullName())
                 .avatarUrl(user.getAvatarUrl())
                 .bio(user.getBio())
+                .phoneNumber(user.getPhoneNumber())
                 .build();
     }
 }
