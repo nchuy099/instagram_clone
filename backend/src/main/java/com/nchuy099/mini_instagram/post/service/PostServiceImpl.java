@@ -8,7 +8,11 @@ import com.nchuy099.mini_instagram.post.entity.Post;
 import com.nchuy099.mini_instagram.post.entity.PostLike;
 import com.nchuy099.mini_instagram.post.entity.PostMedia;
 import com.nchuy099.mini_instagram.post.entity.PostSave;
+import com.nchuy099.mini_instagram.post.entity.Hashtag;
+import com.nchuy099.mini_instagram.post.entity.PostHashtag;
+import com.nchuy099.mini_instagram.post.repository.HashtagRepository;
 import com.nchuy099.mini_instagram.post.repository.PostLikeRepository;
+import com.nchuy099.mini_instagram.post.repository.PostHashtagRepository;
 import com.nchuy099.mini_instagram.post.repository.PostMediaRepository;
 import com.nchuy099.mini_instagram.post.repository.PostRepository;
 import com.nchuy099.mini_instagram.post.repository.PostSaveRepository;
@@ -26,17 +30,26 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
+import java.util.LinkedHashSet;
+import java.util.Locale;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class PostServiceImpl implements PostService {
 
+    private static final Pattern HASHTAG_PATTERN = Pattern.compile("#([A-Za-z0-9_]{1,100})");
+
     private final PostRepository postRepository;
     private final PostMediaRepository postMediaRepository;
     private final PostLikeRepository postLikeRepository;
     private final PostSaveRepository postSaveRepository;
+    private final HashtagRepository hashtagRepository;
+    private final PostHashtagRepository postHashtagRepository;
     private final UserRepository userRepository;
 
     @Override
@@ -64,6 +77,8 @@ public class PostServiceImpl implements PostService {
 
         postMediaRepository.saveAll(mediaList);
         savedPost.setMedia(mediaList);
+
+        savePostHashtags(savedPost, request.getCaption());
 
         // Update user post count
         currentUser.setPostCount(currentUser.getPostCount() + 1);
@@ -293,5 +308,40 @@ public class PostServiceImpl implements PostService {
 
         String credential = authentication.getName();
         return userRepository.findByUsernameOrEmailOrPhoneNumber(credential, credential, credential).orElse(null);
+    }
+
+    private void savePostHashtags(Post post, String caption) {
+        Set<String> hashtagNames = extractHashtags(caption);
+        if (hashtagNames.isEmpty()) {
+            return;
+        }
+
+        List<PostHashtag> mappings = hashtagNames.stream()
+                .map(tagName -> {
+                    Hashtag hashtag = hashtagRepository.findByNameIgnoreCase(tagName)
+                            .orElseGet(() -> hashtagRepository.save(Hashtag.builder().name(tagName).build()));
+
+                    PostHashtag mapping = PostHashtag.builder()
+                            .post(post)
+                            .hashtag(hashtag)
+                            .build();
+                    return mapping;
+                })
+                .toList();
+
+        postHashtagRepository.saveAll(mappings);
+    }
+
+    private Set<String> extractHashtags(String caption) {
+        if (caption == null || caption.isBlank()) {
+            return Set.of();
+        }
+
+        Matcher matcher = HASHTAG_PATTERN.matcher(caption);
+        Set<String> tags = new LinkedHashSet<>();
+        while (matcher.find()) {
+            tags.add(matcher.group(1).toLowerCase(Locale.ROOT));
+        }
+        return tags;
     }
 }

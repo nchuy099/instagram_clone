@@ -6,10 +6,14 @@ import com.nchuy099.mini_instagram.post.dto.UpdatePostRequest;
 import com.nchuy099.mini_instagram.post.entity.Post;
 import com.nchuy099.mini_instagram.post.entity.PostLike;
 import com.nchuy099.mini_instagram.post.entity.PostSave;
+import com.nchuy099.mini_instagram.post.entity.PostHashtag;
+import com.nchuy099.mini_instagram.post.entity.Hashtag;
 import com.nchuy099.mini_instagram.post.repository.PostLikeRepository;
 import com.nchuy099.mini_instagram.post.repository.PostMediaRepository;
 import com.nchuy099.mini_instagram.post.repository.PostRepository;
 import com.nchuy099.mini_instagram.post.repository.PostSaveRepository;
+import com.nchuy099.mini_instagram.post.repository.PostHashtagRepository;
+import com.nchuy099.mini_instagram.post.repository.HashtagRepository;
 import com.nchuy099.mini_instagram.user.entity.User;
 import com.nchuy099.mini_instagram.user.repository.UserRepository;
 import org.junit.jupiter.api.AfterEach;
@@ -41,6 +45,10 @@ class PostServiceTest {
     private PostLikeRepository postLikeRepository;
     @Mock
     private PostSaveRepository postSaveRepository;
+    @Mock
+    private PostHashtagRepository postHashtagRepository;
+    @Mock
+    private HashtagRepository hashtagRepository;
     @Mock
     private UserRepository userRepository;
 
@@ -84,6 +92,36 @@ class PostServiceTest {
         verify(postMediaRepository).saveAll(any());
         verify(userRepository).save(currentUser);
         assertThat(currentUser.getPostCount()).isEqualTo(1);
+    }
+
+    @Test
+    void createPost_WhenCaptionContainsHashtags_ShouldPersistPostHashtags() {
+        User currentUser = User.builder().id(UUID.randomUUID()).username("me").postCount(0).build();
+        authenticateUser("me");
+
+        CreatePostRequest request = new CreatePostRequest();
+        request.setCaption("This is #SpringBoot and #java");
+
+        CreatePostRequest.PostMediaRequest mediaRequest = new CreatePostRequest.PostMediaRequest();
+        mediaRequest.setUrl("http://image.jpg");
+        mediaRequest.setType("IMAGE");
+        request.setMedia(Collections.singletonList(mediaRequest));
+
+        Hashtag springBoot = Hashtag.builder().id(UUID.randomUUID()).name("springboot").build();
+        Hashtag java = Hashtag.builder().id(UUID.randomUUID()).name("java").build();
+
+        when(userRepository.findByUsernameOrEmailOrPhoneNumber("me", "me", "me")).thenReturn(Optional.of(currentUser));
+        when(postRepository.save(any(Post.class))).thenAnswer(i -> {
+            Post p = i.getArgument(0);
+            p.setId(UUID.randomUUID());
+            return p;
+        });
+        when(hashtagRepository.findByNameIgnoreCase("springboot")).thenReturn(Optional.of(springBoot));
+        when(hashtagRepository.findByNameIgnoreCase("java")).thenReturn(Optional.of(java));
+
+        postService.createPost(request);
+
+        verify(postHashtagRepository).saveAll(any());
     }
 
     @Test
