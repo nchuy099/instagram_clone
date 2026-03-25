@@ -17,6 +17,9 @@ public class PostMedia extends BaseEntity {
     @Column(nullable = false)
     private String url;
 
+    @Column(name = "thumbnail_url")
+    private String thumbnailUrl;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "media_type", nullable = false, length = 20)
     private MediaType type;

@@ -204,8 +204,10 @@ public class SearchService {
     private String resolveThumbnailUrl(Post post) {
         return post.getMedia().stream()
                 .sorted(Comparator.comparing(PostMedia::getOrderIndex))
-                .map(PostMedia::getUrl)
                 .findFirst()
+                .map(media -> media.getType() == PostMedia.MediaType.VIDEO
+                        ? (media.getThumbnailUrl() != null && !media.getThumbnailUrl().isBlank() ? media.getThumbnailUrl() : media.getUrl())
+                        : media.getUrl())
                 .orElse(null);
     }
 

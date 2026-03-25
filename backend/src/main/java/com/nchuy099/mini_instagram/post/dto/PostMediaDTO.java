@@ -11,6 +11,7 @@ import java.util.UUID;
 public class PostMediaDTO {
     private UUID id;
     private String url;
+    private String thumbnailUrl;
     private MediaType type;
     private Integer orderIndex;
 }

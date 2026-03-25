@@ -6,6 +6,7 @@ export enum MediaType {
 export interface PostMedia {
   id: string;
   url: string;
+  thumbnailUrl?: string;
   type: MediaType;
   orderIndex: number;
 }
@@ -34,6 +35,7 @@ export interface CreatePostRequest {
   allowComments: boolean;
   media: {
     url: string;
+    thumbnailUrl?: string;
     type: MediaType;
     orderIndex: number;
   }[];

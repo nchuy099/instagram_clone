@@ -29,6 +29,7 @@ export default function MediaCarousel({ media }: MediaCarouselProps) {
       {currentMedia.type === MediaType.VIDEO ? (
         <video
           src={currentMedia.url}
+          poster={currentMedia.thumbnailUrl || undefined}
           controls
           className="max-w-full max-h-full object-contain"
         />
