@@ -44,3 +44,5 @@ aws:
     bucket: ${AWS_S3_BUCKET}
     # org.hibernate.SQL: DEBUG
     # org.hibernate.orm.jdbc.bind: TRACE
+
+frontend_url: ${FRONTEND_URL:http://localhost:5173}

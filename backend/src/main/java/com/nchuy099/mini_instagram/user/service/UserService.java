@@ -20,6 +20,12 @@ public class UserService {
     private final FollowRepository followRepository;
 
     @Transactional(readOnly = true)
+    public User getByUsername(String identifier) {
+        return userRepository.findByUsernameOrEmailOrPhoneNumber(identifier, identifier, identifier)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + identifier));
+    }
+
+    @Transactional(readOnly = true)
     public ProfileHeaderDTO getUserProfile(String username) {
         User targetUser = userRepository.findByUsername(username)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));

@@ -26,7 +26,7 @@ public class SecurityConfig {
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuth2AuthenticationSuccessHandler oAuth2AuthenticationSuccessHandler;
 
-    @org.springframework.beans.factory.annotation.Value("${FRONTEND_URL:http://localhost:5173}")
+    @org.springframework.beans.factory.annotation.Value("${frontend_url}")
     private String frontendUrl;
 
     @Bean

@@ -5,6 +5,7 @@ import com.nchuy099.mini_instagram.auth.service.AuthService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
@@ -17,9 +18,14 @@ import java.io.IOException;
 public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
     private final AuthService authService;
+    private final String frontendUrl;
 
-    public OAuth2AuthenticationSuccessHandler(@Lazy AuthService authService) {
+    public OAuth2AuthenticationSuccessHandler(
+            @Lazy AuthService authService,
+            @Value("${frontend_url}") String frontendUrl
+    ) {
         this.authService = authService;
+        this.frontendUrl = frontendUrl;
     }
 
     @Override
@@ -28,7 +34,8 @@ public class OAuth2AuthenticationSuccessHandler extends SimpleUrlAuthenticationS
         
         AuthResponse authResponse = authService.createRefreshTokenForUser(oAuth2User.getEmail());
 
-        String targetUrl = UriComponentsBuilder.fromUriString("http://localhost:5173/oauth2/callback")
+        String targetUrl = UriComponentsBuilder.fromUriString(frontendUrl)
+                .path("/oauth2/callback")
                 .queryParam("token", authResponse.getAccessToken())
                 .queryParam("refreshToken", authResponse.getRefreshToken())
                 .queryParam("isUsernameSet", oAuth2User.isUsernameSet())
