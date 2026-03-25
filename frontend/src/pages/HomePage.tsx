@@ -1,14 +1,16 @@
 import MainLayout from '../components/layout/MainLayout';
 import { usePosts } from '../features/post/hooks/usePosts';
 import PostCard from '../features/post/components/PostCard';
+import StoriesBar from '../features/story/components/StoriesBar';
 import { Loader2 } from 'lucide-react';
 
 export default function HomePage() {
-  const { posts, isLoading, error } = usePosts();
+  const { posts, isLoading, error } = usePosts({ type: 'feed' });
 
   return (
     <MainLayout>
       <div className="max-w-[470px] mx-auto py-8 px-4">
+        <StoriesBar />
         {isLoading ? (
           <div className="flex flex-col items-center justify-center mt-20 space-y-4">
             <Loader2 className="animate-spin text-gray-400" size={32} />
