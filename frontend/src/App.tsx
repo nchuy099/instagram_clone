@@ -10,6 +10,7 @@ import ProfilePage from './pages/profile/ProfilePage';
 import EditProfilePage from './pages/accounts/EditProfilePage';
 import HomePage from './pages/HomePage';
 import ExplorePage from './pages/ExplorePage';
+import SearchPage from './pages/SearchPage';
 
 const ProtectedRoute = ({ children }: { children: ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -58,6 +59,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <ExplorePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/search"
+            element={
+              <ProtectedRoute>
+                <SearchPage />
               </ProtectedRoute>
             }
           />

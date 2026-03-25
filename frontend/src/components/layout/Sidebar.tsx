@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Home, Compass, MessageCircle, Heart, PlusSquare, User, Menu } from 'lucide-react';
+import { Home, Search, Compass, MessageCircle, Heart, PlusSquare, User, Menu } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import CreatePostModal from '../../features/post/components/CreatePostModal';
@@ -19,6 +19,10 @@ export default function Sidebar() {
           <Link to="/" className="flex items-center space-x-4 p-3 hover:bg-gray-100 rounded-lg transition">
             <Home size={24} />
             <span className="text-[15px] font-semibold">Home</span>
+          </Link>
+          <Link to="/search" className="flex items-center space-x-4 p-3 hover:bg-gray-100 rounded-lg transition">
+            <Search size={24} />
+            <span className="text-[15px]">Search</span>
           </Link>
           <Link to="/explore" className="flex items-center space-x-4 p-3 hover:bg-gray-100 rounded-lg transition">
             <Compass size={24} />
