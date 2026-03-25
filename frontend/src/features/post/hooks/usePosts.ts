@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import type { Post } from '../types';
 import api from '../../../lib/axios';
 
-export type PostFeedType = 'feed' | 'user' | 'saved';
+export type PostFeedType = 'feed' | 'user' | 'saved' | 'explore';
 
 export function usePosts(options: { type?: PostFeedType; username?: string } = { type: 'feed' }) {
   const { type = 'feed', username } = options;
@@ -14,11 +14,13 @@ export function usePosts(options: { type?: PostFeedType; username?: string } = {
     setIsLoading(true);
     setError(null);
     try {
-      let url = '/posts';
+      let url = '/feed';
       if (type === 'user' && username) {
         url = `/users/${username}/posts`;
       } else if (type === 'saved') {
         url = '/posts/saved';
+      } else if (type === 'explore') {
+        url = '/explore';
       }
       
       const response = await api.get(url);

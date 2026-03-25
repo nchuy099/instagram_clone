@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Home, Search, Compass, MessageCircle, Heart, PlusSquare, User, Menu } from 'lucide-react';
+import { Home, Compass, MessageCircle, Heart, PlusSquare, User, Menu } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import CreatePostModal from '../../features/post/components/CreatePostModal';
@@ -20,14 +20,10 @@ export default function Sidebar() {
             <Home size={24} />
             <span className="text-[15px] font-semibold">Home</span>
           </Link>
-          <div className="flex items-center space-x-4 p-3 hover:bg-gray-100 rounded-lg transition cursor-pointer">
-            <Search size={24} />
-            <span className="text-[15px]">Search</span>
-          </div>
-          <div className="flex items-center space-x-4 p-3 hover:bg-gray-100 rounded-lg transition cursor-pointer">
+          <Link to="/explore" className="flex items-center space-x-4 p-3 hover:bg-gray-100 rounded-lg transition">
             <Compass size={24} />
             <span className="text-[15px]">Explore</span>
-          </div>
+          </Link>
           <div className="flex items-center space-x-4 p-3 hover:bg-gray-100 rounded-lg transition cursor-pointer">
             <MessageCircle size={24} />
             <span className="text-[15px]">Messages</span>
@@ -36,7 +32,7 @@ export default function Sidebar() {
             <Heart size={24} />
             <span className="text-[15px]">Notifications</span>
           </div>
-          <div 
+          <div
             className="flex items-center space-x-4 p-3 hover:bg-gray-100 rounded-lg transition cursor-pointer"
             onClick={() => setIsModalOpen(true)}
           >
@@ -59,11 +55,10 @@ export default function Sidebar() {
         </div>
       </div>
 
-      <CreatePostModal 
-        isOpen={isModalOpen} 
+      <CreatePostModal
+        isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSuccess={() => {
-          // Potentially refresh feed or navigate back to profile/home
           console.log('Post created successfully!');
         }}
       />

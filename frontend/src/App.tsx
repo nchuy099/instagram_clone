@@ -9,13 +9,14 @@ import SetupUsernamePage from './pages/auth/SetupUsernamePage';
 import ProfilePage from './pages/profile/ProfilePage';
 import EditProfilePage from './pages/accounts/EditProfilePage';
 import HomePage from './pages/HomePage';
+import ExplorePage from './pages/ExplorePage';
 
 const ProtectedRoute = ({ children }: { children: ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth();
-  
+
   if (isLoading) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   if (!isAuthenticated) return <Navigate to="/login" />;
-  
+
   return children;
 };
 
@@ -28,27 +29,38 @@ function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/oauth2/callback" element={<OAuth2CallbackPage />} />
           <Route path="/setup-username" element={<SetupUsernamePage />} />
-          <Route 
-            path="/accounts/edit" 
+          <Route
+            path="/accounts/edit"
             element={
               <ProtectedRoute>
                 <EditProfilePage />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/:username" 
+          <Route
+            path="/:username"
             element={
               <ProtectedRoute>
                 <ProfilePage />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route path="/" element={
-            <ProtectedRoute>
-              <HomePage />
-            </ProtectedRoute>
-          } />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <HomePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/explore"
+            element={
+              <ProtectedRoute>
+                <ExplorePage />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </Router>
     </AuthProvider>
