@@ -1,7 +1,9 @@
-export enum MediaType {
-  IMAGE = 'IMAGE',
-  VIDEO = 'VIDEO',
-}
+export const MediaType = {
+  IMAGE: 'IMAGE',
+  VIDEO: 'VIDEO'
+} as const;
+
+export type MediaType = (typeof MediaType)[keyof typeof MediaType]
 
 export interface PostMedia {
   id: string;

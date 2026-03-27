@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import { X, ChevronLeft, ChevronRight } from 'lucide-react';
-import type { Story } from '../services/storyService';
+import { useState, useEffect, useCallback } from "react";
+import { X, ChevronLeft, ChevronRight, Heart, Send } from "lucide-react";
+import type { Story } from "../services/storyService";
 
 interface StoryViewerProps {
   stories: Story[];
@@ -8,19 +8,37 @@ interface StoryViewerProps {
   onClose: () => void;
   onNextUser?: () => void;
   onPrevUser?: () => void;
+  onLike?: (storyId: string, currentlyLiked: boolean) => Promise<Story | undefined>;
+  onReply?: (storyId: string, content: string) => Promise<Story | undefined>;
+  onShare?: (storyId: string) => Promise<Story | undefined>;
 }
 
-export default function StoryViewer({ stories, initialStoryIndex = 0, onClose, onNextUser, onPrevUser }: StoryViewerProps) {
+export default function StoryViewer({
+  stories,
+  initialStoryIndex = 0,
+  onClose,
+  onNextUser,
+  onPrevUser,
+  onLike,
+  onReply,
+  onShare
+}: StoryViewerProps) {
   const [currentIndex, setCurrentIndex] = useState(initialStoryIndex);
   const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-  
-  const STORY_DURATION = 5000; // 5 seconds per story
+  const [replyText, setReplyText] = useState("");
+  const [isReplyFocused, setIsReplyFocused] = useState(false);
+  const [isSendingReply, setIsSendingReply] = useState(false);
+  const [isSubmittingAction, setIsSubmittingAction] = useState(false);
+
+  const STORY_DURATION = 5000;
 
   const handleNext = useCallback(() => {
     if (currentIndex < stories.length - 1) {
-      setCurrentIndex(prev => prev + 1);
+      setCurrentIndex((prev) => prev + 1);
       setProgress(0);
+      setReplyText("");
+      setIsReplyFocused(false);
     } else if (onNextUser) {
       onNextUser();
     } else {
@@ -30,23 +48,27 @@ export default function StoryViewer({ stories, initialStoryIndex = 0, onClose, o
 
   const handlePrev = useCallback(() => {
     if (currentIndex > 0) {
-      setCurrentIndex(prev => prev - 1);
+      setCurrentIndex((prev) => prev - 1);
       setProgress(0);
+      setReplyText("");
+      setIsReplyFocused(false);
     } else if (onPrevUser) {
       onPrevUser();
     }
   }, [currentIndex, onPrevUser]);
 
   useEffect(() => {
-    if (isPaused) return;
+    if (isPaused) {
+      return;
+    }
 
     const interval = setInterval(() => {
-      setProgress(prev => {
+      setProgress((prev) => {
         if (prev >= 100) {
           handleNext();
           return 0;
         }
-        return prev + (100 / (STORY_DURATION / 100));
+        return prev + 100 / (STORY_DURATION / 100);
       });
     }, 100);
 
@@ -55,104 +77,228 @@ export default function StoryViewer({ stories, initialStoryIndex = 0, onClose, o
 
   const currentStory = stories[currentIndex];
 
-  if (!currentStory) return null;
+  if (currentStory == null) {
+    return null;
+  }
+
+  const isReplyMode = isReplyFocused || replyText.trim().length > 0;
+
+  const handleLikeClick = async (event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (onLike == null || isSubmittingAction) {
+      return;
+    }
+
+    setIsSubmittingAction(true);
+    try {
+      await onLike(currentStory.id, Boolean(currentStory.likedByCurrentUser));
+    } catch (error) {
+      console.error("Failed to like story", error);
+    } finally {
+      setIsSubmittingAction(false);
+    }
+  };
+
+  const handleShareClick = async (event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (onShare == null || isSubmittingAction) {
+      return;
+    }
+
+    setIsSubmittingAction(true);
+    try {
+      await onShare(currentStory.id);
+    } catch (error) {
+      console.error("Failed to share story", error);
+    } finally {
+      setIsSubmittingAction(false);
+    }
+  };
+
+  const handleReplySubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (onReply == null || isSendingReply) {
+      return;
+    }
+
+    const trimmedReply = replyText.trim();
+    if (trimmedReply.length === 0) {
+      return;
+    }
+
+    setIsSendingReply(true);
+    try {
+      await onReply(currentStory.id, trimmedReply);
+      setReplyText("");
+      setIsReplyFocused(false);
+    } catch (error) {
+      console.error("Failed to reply story", error);
+    } finally {
+      setIsSendingReply(false);
+    }
+  };
 
   return (
-    <div 
-      className="fixed inset-0 z-[100] bg-black flex items-center justify-center select-none"
-      onClick={() => setIsPaused(prev => !prev)}
+    <div
+      className="fixed inset-0 z-[100] flex select-none items-center justify-center bg-black"
+      onClick={() => setIsPaused((prev) => (prev ? false : true))}
     >
-      {/* Background with blur */}
-      <div 
-        className="absolute inset-0 opacity-50 blur-2xl pointer-events-none"
-        style={{ backgroundImage: `url(${currentStory.mediaUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+      <div
+        className="pointer-events-none absolute inset-0 opacity-50 blur-2xl"
+        style={{
+          backgroundImage: "url(" + currentStory.mediaUrl + ")",
+          backgroundSize: "cover",
+          backgroundPosition: "center"
+        }}
       />
 
-      <div className="relative w-full max-w-[420px] aspect-[9/16] bg-black shadow-2xl overflow-hidden rounded-xl">
-        {/* Progress Bars */}
-        <div className="absolute top-0 left-0 right-0 z-20 p-2 flex space-x-1">
+      <div className="relative aspect-[9/16] w-full max-w-[420px] overflow-hidden rounded-xl bg-black shadow-2xl">
+        <div className="absolute left-0 right-0 top-0 z-20 flex space-x-1 p-2">
           {stories.map((_, index) => (
-            <div key={index} className="h-1 flex-1 bg-white/30 rounded-full overflow-hidden">
-              <div 
+            <div key={index} className="h-1 flex-1 overflow-hidden rounded-full bg-white/30">
+              <div
                 className="h-full bg-white transition-all duration-100 ease-linear"
-                style={{ 
-                  width: index === currentIndex ? `${progress}%` : index < currentIndex ? '100%' : '0%' 
-                }}
+                style={{ width: index === currentIndex ? String(progress) + "%" : index < currentIndex ? "100%" : "0%" }}
               />
             </div>
           ))}
         </div>
 
-        {/* Header */}
-        <div className="absolute top-4 left-0 right-0 z-20 px-4 flex items-center justify-between">
+        <div className="absolute left-0 right-0 top-4 z-20 flex items-center justify-between px-4">
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 rounded-full border border-white/20 overflow-hidden">
-              <img src={currentStory.userAvatarUrl} alt={currentStory.username} className="w-full h-full object-cover" />
+            <div className="h-8 w-8 overflow-hidden rounded-full border border-white/20">
+              <img src={currentStory.userAvatarUrl} alt={currentStory.username} className="h-full w-full object-cover" />
             </div>
-            <span className="text-white font-semibold text-sm drop-shadow-md">{currentStory.username}</span>
-            <span className="text-white/60 text-xs drop-shadow-md">2h</span> {/* Mock time */}
+            <span className="text-sm font-semibold text-white drop-shadow-md">{currentStory.username}</span>
           </div>
-          <button 
-            onClick={(e) => { e.stopPropagation(); onClose(); }} 
-            className="text-white hover:text-gray-300 drop-shadow-md p-1"
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
+            className="p-1 text-white drop-shadow-md hover:text-gray-300"
           >
             <X size={24} />
           </button>
         </div>
 
-        {/* Media */}
-        <div className="w-full h-full flex items-center justify-center">
-          {currentStory.mediaType === 'VIDEO' ? (
-            <video 
-              src={currentStory.mediaUrl} 
-              autoPlay 
-              muted 
-              className="max-w-full max-h-full object-contain"
+        <div className="flex h-full w-full items-center justify-center">
+          {currentStory.mediaType === "VIDEO" ? (
+            <video
+              src={currentStory.mediaUrl}
+              autoPlay
+              muted
+              className="max-h-full max-w-full object-contain"
               onEnded={handleNext}
             />
           ) : (
-            <img 
-              src={currentStory.mediaUrl} 
-              alt="Story" 
-              className="max-w-full max-h-full object-contain"
-            />
+            <img src={currentStory.mediaUrl} alt="Story" className="max-h-full max-w-full object-contain" />
           )}
         </div>
 
-        {/* Navigation Overlays */}
         <div className="absolute inset-0 z-10 flex">
-          <div 
-            className="w-1/3 h-full cursor-pointer"
-            onClick={(e) => { e.stopPropagation(); handlePrev(); }}
+          <div
+            className="h-full w-1/3 cursor-pointer"
+            onClick={(e) => {
+              e.stopPropagation();
+              handlePrev();
+            }}
           />
-          <div className="w-1/3 h-full" /> {/* Center area for pausing */}
-          <div 
-            className="w-1/3 h-full cursor-pointer"
-            onClick={(e) => { e.stopPropagation(); handleNext(); }}
+          <div className="h-full w-1/3" />
+          <div
+            className="h-full w-1/3 cursor-pointer"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleNext();
+            }}
           />
         </div>
 
-        {/* Loading state if needed */}
+        <div
+          className="absolute bottom-0 left-0 right-0 z-30 border-t border-white/15 bg-gradient-to-t from-black/80 to-black/30 p-3"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <form onSubmit={handleReplySubmit} className="flex items-center gap-2">
+            <input
+              value={replyText}
+              onChange={(e) => setReplyText(e.target.value)}
+              onFocus={() => {
+                setIsPaused(true);
+                setIsReplyFocused(true);
+              }}
+              onBlur={() => {
+                setIsPaused(false);
+                setIsReplyFocused(false);
+              }}
+              placeholder="Nhắn trả lời story..."
+              className="w-full rounded-full border border-white/20 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-white/60 focus:border-white/40 focus:outline-none"
+              maxLength={500}
+            />
+
+            {isReplyMode ? (
+              <button
+                type="submit"
+                className="rounded-full bg-[#0095f6] p-2 text-white disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={isSendingReply || replyText.trim().length === 0}
+                aria-label="Send reply"
+              >
+                <Send size={18} />
+              </button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleLikeClick}
+                  className="rounded-full bg-white/10 p-2 text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={isSubmittingAction}
+                  aria-label="Like story"
+                >
+                  <Heart
+                    size={18}
+                    className={currentStory.likedByCurrentUser ? "fill-red-500 text-red-500" : "text-white"}
+                  />
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleShareClick}
+                  className="rounded-full bg-white/10 p-2 text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={isSubmittingAction}
+                  aria-label="Share story"
+                >
+                  <Send size={18} />
+                </button>
+              </div>
+            )}
+          </form>
+        </div>
+
         {isPaused && (
-          <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none">
-            <div className="bg-black/20 p-4 rounded-full backdrop-blur-sm">
-              <span className="text-white text-sm font-semibold opacity-80">Paused</span>
+          <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
+            <div className="rounded-full bg-black/20 p-4 backdrop-blur-sm">
+              <span className="text-sm font-semibold text-white opacity-80">Paused</span>
             </div>
           </div>
         )}
       </div>
 
-      {/* External Navigation Arrows for large screens */}
-      <div className="hidden md:flex absolute inset-y-0 left-0 right-0 items-center justify-between px-8 pointer-events-none">
-        <button 
-          onClick={(e) => { e.stopPropagation(); handlePrev(); }}
-          className="p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition pointer-events-auto"
+      <div className="pointer-events-none absolute inset-y-0 left-0 right-0 hidden items-center justify-between px-8 md:flex">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handlePrev();
+          }}
+          className="pointer-events-auto rounded-full bg-white/10 p-3 text-white transition hover:bg-white/20"
         >
           <ChevronLeft size={32} />
         </button>
-        <button 
-          onClick={(e) => { e.stopPropagation(); handleNext(); }}
-          className="p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition pointer-events-auto"
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleNext();
+          }}
+          className="pointer-events-auto rounded-full bg-white/10 p-3 text-white transition hover:bg-white/20"
         >
           <ChevronRight size={32} />
         </button>

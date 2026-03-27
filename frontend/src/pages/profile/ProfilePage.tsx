@@ -4,6 +4,7 @@ import api from '../../lib/axios';
 import MainLayout from '../../components/layout/MainLayout';
 import ProfileHeader from '../../features/profile/components/ProfileHeader';
 import ProfileTabs from '../../features/profile/components/ProfileTabs';
+import OwnStoriesSection from '../../features/profile/components/OwnStoriesSection';
 import { useAuth } from '../../hooks/useAuth';
 import { usePosts } from '../../features/post/hooks/usePosts';
 import PostGrid from '../../features/post/components/PostGrid';
@@ -70,6 +71,7 @@ export default function ProfilePage() {
       ) : profile ? (
         <div className="max-w-4xl mx-auto py-8 px-4 sm:px-8">
           <ProfileHeader profile={profile} onToggleFollow={handleToggleFollow} />
+          {isOwnProfile ? <OwnStoriesSection username={profile.username} /> : null}
           <ProfileTabs 
             activeTab={activeTab} 
             onTabChange={setActiveTab} 

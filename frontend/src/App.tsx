@@ -11,6 +11,7 @@ import EditProfilePage from './pages/accounts/EditProfilePage';
 import HomePage from './pages/HomePage';
 import ExplorePage from './pages/ExplorePage';
 import SearchPage from './pages/SearchPage';
+import MessagesPage from './pages/MessagesPage';
 
 const ProtectedRoute = ({ children }: { children: ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -39,10 +40,10 @@ function App() {
             }
           />
           <Route
-            path="/:username"
+            path="/messages"
             element={
               <ProtectedRoute>
-                <ProfilePage />
+                <MessagesPage />
               </ProtectedRoute>
             }
           />
@@ -67,6 +68,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <SearchPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/:username"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
               </ProtectedRoute>
             }
           />

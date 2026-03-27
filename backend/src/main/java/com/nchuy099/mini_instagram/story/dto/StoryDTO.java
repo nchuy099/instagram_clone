@@ -21,4 +21,8 @@ public class StoryDTO {
     private String mediaType;
     private ZonedDateTime createdAt;
     private ZonedDateTime expiresAt;
+    private Long likeCount;
+    private Long replyCount;
+    private Long shareCount;
+    private Boolean likedByCurrentUser;
 }

@@ -4,7 +4,6 @@ import { postService } from '../services/postService';
 import type { Post } from '../types';
 import MediaCarousel from './MediaCarousel';
 import CommentSection from './CommentSection';
-import { useAuth } from '../../../hooks/useAuth';
 import { formatDistanceToNow } from 'date-fns';
 
 interface PostDetailModalProps {
@@ -13,7 +12,6 @@ interface PostDetailModalProps {
 }
 
 export default function PostDetailModal({ postId, onClose }: PostDetailModalProps) {
-  const { user: currentUser } = useAuth();
   const [post, setPost] = useState<Post | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLiked, setIsLiked] = useState(false);

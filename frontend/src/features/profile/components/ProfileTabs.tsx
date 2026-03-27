@@ -1,6 +1,4 @@
 import { Grid, Bookmark, PlaySquare } from 'lucide-react';
-import PostGrid from '../../post/components/PostGrid';
-import type { Post } from '../../post/types';
 
 interface ProfileTabsProps {
   activeTab: 'posts' | 'saved' | 'tagged';
