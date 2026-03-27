@@ -1,4 +1,4 @@
-# 📸 Mini Instagram
+# 📸 Instagram Clone
 
 A full-stack Instagram clone with complete social networking features — built with **Spring Boot** and **React**.
 

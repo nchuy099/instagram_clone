@@ -1,1 +1,0 @@
-https://www.figma.com/design/vjsySTIAVmSiRGyGReGleI/Instagram-Design?node-id=0-1&m=dev&t=T4Iu2djR9UbCWwbR-1
