@@ -1,4 +1,4 @@
-import { Grid, Heart, MessageCircle } from 'lucide-react';
+import { FiHeart, FiMessageCircle, FiGrid } from 'react-icons/fi';
 import type { Post } from '../types';
 import { MediaType } from '../types';
 
@@ -23,7 +23,7 @@ export default function PostGrid({ posts, isLoading, onPostClick }: PostGridProp
     return (
       <div className="flex flex-col items-center mt-16 text-center text-gray-500">
         <div className="w-16 h-16 border-2 border-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Grid size={32} className="text-gray-800" />
+          <FiGrid size={32} className="text-gray-800" />
         </div>
         <h2 className="text-2xl font-extrabold text-gray-900 mb-2 mt-6">No Posts Yet</h2>
         <p className="max-w-xs mx-auto text-sm">When they share posts, they will appear on their profile.</p>
@@ -62,11 +62,11 @@ export default function PostGrid({ posts, isLoading, onPostClick }: PostGridProp
 
             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition duration-200 text-white font-bold space-x-6">
               <div className="flex items-center space-x-1.5">
-                <Heart size={20} fill="currentColor" />
+                <FiHeart size={20} />
                 <span>{post.likeCount}</span>
               </div>
               <div className="flex items-center space-x-1.5">
-                <MessageCircle size={20} fill="currentColor" />
+                <FiMessageCircle size={20} />
                 <span>{post.commentCount}</span>
               </div>
             </div>

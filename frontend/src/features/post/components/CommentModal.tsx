@@ -1,4 +1,4 @@
-import { X } from 'lucide-react';
+import { FiX } from 'react-icons/fi';
 import type { Post } from '../types';
 import MediaCarousel from './MediaCarousel';
 import CommentSection from './CommentSection';
@@ -19,7 +19,7 @@ export default function CommentModal({ post, isOpen, onClose }: CommentModalProp
         onClick={onClose}
         className="absolute top-4 right-4 text-white hover:text-gray-300 transition"
       >
-        <X size={32} />
+        <FiX size={32} />
       </button>
 
       <div className="bg-white w-full max-w-5xl h-[90vh] flex flex-col md:flex-row rounded-lg overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200">

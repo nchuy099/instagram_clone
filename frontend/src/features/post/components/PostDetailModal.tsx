@@ -1,5 +1,13 @@
 import { useState, useEffect } from 'react';
-import { X, Heart, MessageCircle, Send, Bookmark, MoreHorizontal, Loader2 } from 'lucide-react';
+import {
+  FiBookmark,
+  FiMoreHorizontal,
+  FiHeart,
+  FiMessageCircle,
+  FiSend,
+  FiLoader,
+  FiX,
+} from 'react-icons/fi';
 import { postService } from '../services/postService';
 import type { Post } from '../types';
 import MediaCarousel from './MediaCarousel';
@@ -73,7 +81,7 @@ export default function PostDetailModal({ postId, onClose }: PostDetailModalProp
   if (isLoading) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-        <Loader2 className="text-white animate-spin" size={48} />
+        <FiLoader className="text-white animate-spin" size={48} />
       </div>
     );
   }
@@ -86,7 +94,7 @@ export default function PostDetailModal({ postId, onClose }: PostDetailModalProp
         className="absolute top-4 right-4 text-white hover:text-gray-300 transition z-[60]"
         onClick={onClose}
       >
-        <X size={32} />
+        <FiX size={32} />
       </button>
 
       <div 
@@ -109,7 +117,7 @@ export default function PostDetailModal({ postId, onClose }: PostDetailModalProp
               <span className="font-semibold text-sm">{post.user.username}</span>
             </div>
             <button className="text-gray-500 hover:text-gray-900 transition">
-              <MoreHorizontal size={20} />
+              <FiMoreHorizontal size={20} />
             </button>
           </div>
 
@@ -139,22 +147,22 @@ export default function PostDetailModal({ postId, onClose }: PostDetailModalProp
               <div className="flex items-center space-x-4">
                 <button 
                   onClick={handleLike}
-                  className={`transition hover:opacity-50 ${isLiked ? 'text-red-500 fill-red-500' : 'text-gray-900'}`}
+                  className={`transition hover:opacity-50 ${isLiked ? 'text-red-500' : 'text-gray-900'}`}
                 >
-                  <Heart size={24} />
+                  <FiHeart size={24} />
                 </button>
                 <button className="text-gray-900 hover:opacity-50 transition">
-                  <MessageCircle size={24} />
+                  <FiMessageCircle size={24} />
                 </button>
                 <button className="text-gray-900 hover:opacity-50 transition">
-                  <Send size={24} />
+                  <FiSend size={24} />
                 </button>
               </div>
               <button 
                 onClick={handleSave}
-                className={`transition hover:opacity-50 ${isSaved ? 'text-gray-900 fill-gray-900' : 'text-gray-900'}`}
+                className={`transition hover:opacity-50 ${isSaved ? 'text-gray-900' : 'text-gray-900'}`}
               >
-                <Bookmark size={24} />
+                <FiBookmark size={24} />
               </button>
             </div>
             

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Plus, Loader2 } from "lucide-react";
+import { FiPlus, FiLoader } from "react-icons/fi";
 import { storyService } from "../../story/services/storyService";
 import type { Story } from "../../story/services/storyService";
 import { mediaService } from "../../post/services/mediaService";
@@ -119,7 +119,7 @@ export default function OwnStoriesSection({ username }: OwnStoriesSectionProps) 
           className="group flex flex-shrink-0 flex-col items-center"
         >
           <div className="flex h-16 w-16 items-center justify-center rounded-full border border-gray-400 bg-gray-100 text-gray-500 transition group-hover:bg-gray-200">
-            {isCreating ? <Loader2 size={30} className="animate-spin" /> : <Plus size={30} />}
+            {isCreating ? <FiLoader size={24} className="animate-spin" /> : <FiPlus size={24} />}
           </div>
           <span className="mt-1 text-xs text-gray-700">New</span>
         </button>
@@ -127,7 +127,7 @@ export default function OwnStoriesSection({ username }: OwnStoriesSectionProps) 
 
       {isLoading && (
         <div className="mt-3 inline-flex items-center gap-2 text-xs text-gray-500">
-          <Loader2 size={14} className="animate-spin" />
+          <FiLoader size={14} className="animate-spin" />
           Dang tai story...
         </div>
       )}

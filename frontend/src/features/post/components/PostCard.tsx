@@ -1,4 +1,10 @@
-import { Heart, MessageCircle, Send, Bookmark, MoreHorizontal } from 'lucide-react';
+import {
+  FiBookmark,
+  FiMoreHorizontal,
+  FiHeart,
+  FiMessageCircle,
+  FiSend,
+} from 'react-icons/fi';
 import type { Post } from '../types';
 import MediaCarousel from './MediaCarousel';
 import { useState } from 'react';
@@ -78,7 +84,7 @@ export default function PostCard({ post: initialPost }: PostCardProps) {
             <span className="text-gray-500 text-sm">Now</span>
           </div>
           <button className="text-gray-900 border-none bg-none p-1 hover:text-gray-500 transition">
-            <MoreHorizontal size={20} />
+            <FiMoreHorizontal size={20} />
           </button>
         </div>
 
@@ -93,23 +99,23 @@ export default function PostCard({ post: initialPost }: PostCardProps) {
                 onClick={handleToggleLike}
                 className={`hover:opacity-60 transition ${post.isLiked ? 'text-red-500 animate-in bounce-in' : 'text-gray-900'}`}
               >
-                <Heart size={24} fill={post.isLiked ? 'currentColor' : 'none'} />
+                <FiHeart size={24} />
               </button>
               <button 
                 onClick={() => setIsCommentModalOpen(true)}
                 className="hover:opacity-60 transition text-gray-900"
               >
-                <MessageCircle size={24} />
+                <FiMessageCircle size={24} />
               </button>
               <button className="hover:opacity-60 transition text-gray-900">
-                <Send size={24} />
+                <FiSend size={24} />
               </button>
             </div>
             <button 
               onClick={handleToggleSave}
               className={`hover:opacity-60 transition ${post.isSaved ? 'text-black' : 'text-gray-900'}`}
             >
-              <Bookmark size={24} fill={post.isSaved ? 'currentColor' : 'none'} />
+              <FiBookmark size={24} />
             </button>
           </div>
 

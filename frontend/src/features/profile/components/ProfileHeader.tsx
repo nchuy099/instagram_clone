@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { User, Settings } from 'lucide-react';
+import { FiCamera, FiLoader, FiSettings, FiUser } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 import UserListModal from './UserListModal';
 
@@ -7,21 +7,50 @@ interface ProfileHeaderProps {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   profile: any;
   onToggleFollow: () => void;
+  onAvatarClick?: () => void;
+  isAvatarUploading?: boolean;
 }
 
-export default function ProfileHeader({ profile, onToggleFollow }: ProfileHeaderProps) {
+export default function ProfileHeader({
+  profile,
+  onToggleFollow,
+  onAvatarClick,
+  isAvatarUploading = false,
+}: ProfileHeaderProps) {
   const [activeModal, setActiveModal] = useState<'followers' | 'following' | null>(null);
 
   return (
     <div className="flex flex-col md:flex-row mb-12 border-b border-gray-300 pb-10 font-sans">
       <div className="md:w-1/3 flex justify-center items-start mb-6 md:mb-0">
-        <div className="w-20 h-20 sm:w-36 sm:h-36 rounded-full overflow-hidden bg-gray-200 border border-gray-100 flex items-center justify-center flex-shrink-0 cursor-pointer shadow-sm">
+        <button
+          type="button"
+          onClick={profile.isOwnProfile ? onAvatarClick : undefined}
+          className={`group relative w-20 h-20 sm:w-36 sm:h-36 rounded-full overflow-hidden bg-gray-200 border border-gray-100 flex items-center justify-center flex-shrink-0 shadow-sm ${
+            profile.isOwnProfile ? 'cursor-pointer hover:opacity-90 transition-opacity' : 'cursor-default'
+          }`}
+          aria-label={profile.isOwnProfile ? 'Change avatar' : 'User avatar'}
+        >
           {profile.avatarUrl ? (
             <img src={profile.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
           ) : (
-            <User size={64} className="text-gray-400" />
+            <FiUser size={48} className="text-gray-400" />
           )}
-        </div>
+          {isAvatarUploading ? (
+            <span className="absolute inset-0 flex items-center justify-center bg-black/35 text-white">
+              <FiLoader size={22} className="animate-spin" />
+            </span>
+          ) : null}
+          {profile.isOwnProfile && !isAvatarUploading ? (
+            <>
+              <span className="absolute bottom-1 right-1 rounded-full bg-black/70 p-1 text-white">
+                <FiCamera size={12} />
+              </span>
+              <span className="absolute inset-0 hidden items-center justify-center bg-black/45 text-[10px] font-semibold uppercase tracking-wide text-white group-hover:flex sm:text-xs">
+                Change photo
+              </span>
+            </>
+          ) : null}
+        </button>
       </div>
       
       <div className="md:w-2/3 md:ml-8 flex flex-col justify-center">
@@ -38,7 +67,7 @@ export default function ProfileHeader({ profile, onToggleFollow }: ProfileHeader
                   Edit profile
                 </Link>
                 <button className="p-1 hover:bg-gray-100 rounded-lg">
-                  <Settings size={20} className="text-gray-900" />
+                  <FiSettings size={18} className="text-gray-900" />
                 </button>
               </>
             ) : (

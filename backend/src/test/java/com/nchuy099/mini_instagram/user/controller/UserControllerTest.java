@@ -7,6 +7,8 @@ import com.nchuy099.mini_instagram.common.security.CustomUserDetailsService;
 import com.nchuy099.mini_instagram.common.security.JwtAuthenticationEntryPoint;
 import com.nchuy099.mini_instagram.common.security.JwtAuthenticationFilter;
 import com.nchuy099.mini_instagram.common.security.JwtTokenProvider;
+import com.nchuy099.mini_instagram.post.service.PostService;
+import com.nchuy099.mini_instagram.user.dto.HomeSuggestionDTO;
 import com.nchuy099.mini_instagram.user.dto.ProfileHeaderDTO;
 import com.nchuy099.mini_instagram.user.dto.UpdateProfileRequest;
 import com.nchuy099.mini_instagram.user.dto.UserDTO;
@@ -49,6 +51,9 @@ class UserControllerTest {
 
     @MockBean
     private FollowService followService;
+
+    @MockBean
+    private PostService postService;
 
     @MockBean
     private JwtTokenProvider jwtTokenProvider;
@@ -152,5 +157,22 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.message").value("Unfollowed user successfully"));
         
         verify(followService).unfollowUser(userId);
+    }
+
+    @Test
+    void shouldGetHomeSuggestions() throws Exception {
+        HomeSuggestionDTO suggestion = HomeSuggestionDTO.builder()
+                .id(UUID.randomUUID())
+                .username("leomessi")
+                .fullName("Leo Messi")
+                .subtitle("Suggested for you")
+                .build();
+
+        when(userService.getHomeSuggestions()).thenReturn(List.of(suggestion));
+
+        mockMvc.perform(get("/api/users/suggestions"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data[0].username").value("leomessi"));
     }
 }

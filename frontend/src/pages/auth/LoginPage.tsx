@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { FaFacebook } from 'react-icons/fa6';
 import { useAuth } from '../../hooks/useAuth';
 import api from '../../lib/axios';
 
@@ -56,7 +57,10 @@ export default function LoginPage() {
 
         {/* Logo and Form Box */}
         <div className="bg-white px-10 pt-10 pb-5 md:border border-[#dbdbdb] rounded-[1px] flex flex-col items-center">
-          <h1 className="text-[32px] font-bold text-black mb-8 tracking-tighter">Instagram</h1>
+          <div className="relative mb-8 flex w-full items-center justify-center">
+            <img src="/insta_logo.png" alt="Instagram logo" className="absolute left-2 h-[52px] w-[52px] object-contain" />
+            <span className="font-['Grand_Hotel'] text-[48px] leading-none text-black">Instagram</span>
+          </div>
 
           <form onSubmit={handleSubmit} className="w-full flex flex-col gap-[6px]">
             <input
@@ -121,9 +125,7 @@ export default function LoginPage() {
               onClick={handleFacebookLogin}
               className="flex items-center justify-center gap-2 mx-auto hover:opacity-70 transition-opacity"
             >
-              <svg className="w-4 h-4 text-[#385185] fill-current" viewBox="0 0 24 24">
-                <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-              </svg>
+              <FaFacebook className="text-[#385185]" size={14} />
               <span className="text-[14px] font-semibold text-[#385185]">Log in with Facebook</span>
             </button>
 

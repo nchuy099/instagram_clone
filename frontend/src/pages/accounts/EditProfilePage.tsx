@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 import api from '../../lib/axios';
 import { useAuth } from '../../hooks/useAuth';
 import MainLayout from '../../components/layout/MainLayout';
-import { User } from 'lucide-react';
+import { FiLoader, FiUser } from 'react-icons/fi';
+import { mediaService } from '../../features/post/services/mediaService';
 
 export default function EditProfilePage() {
   const { user, setUser } = useAuth();
@@ -15,7 +16,9 @@ export default function EditProfilePage() {
   const [website, setWebsite] = useState(user?.websiteUrl || '');
   const [isPrivate, setIsPrivate] = useState(user?.isPrivate || false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isAvatarUploading, setIsAvatarUploading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (user) {
@@ -58,6 +61,41 @@ export default function EditProfilePage() {
     }
   };
 
+  const handleAvatarFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file || !user) {
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      setMessage({ type: 'error', text: 'Please choose an image file.' });
+      return;
+    }
+
+    setIsAvatarUploading(true);
+    setMessage(null);
+
+    try {
+      const avatarUrl = await mediaService.uploadFile(file);
+      const response = await api.patch('/me/profile', { avatarUrl });
+      setUser({
+        ...user,
+        ...response.data.data,
+        avatarUrl,
+      });
+      setMessage({ type: 'success', text: 'Avatar updated.' });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      setMessage({
+        type: 'error',
+        text: err.response?.data?.message || 'Failed to upload avatar.',
+      });
+    } finally {
+      setIsAvatarUploading(false);
+    }
+  };
+
   return (
     <MainLayout>
       <div className="max-w-2xl mx-auto py-8 px-4">
@@ -70,15 +108,28 @@ export default function EditProfilePage() {
                 <img src={user.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-gray-200">
-                  <User size={20} className="text-gray-400" />
+                  <FiUser size={18} className="text-gray-400" />
                 </div>
               )}
             </div>
             <div className="ml-4">
               <p className="font-bold text-sm">{user?.username}</p>
-              <button className="text-[#0095f6] text-sm font-bold hover:text-blue-900 transition-colors">
-                Change profile photo
+              <button
+                type="button"
+                className="inline-flex items-center gap-1 text-[#0095f6] text-sm font-bold hover:text-blue-900 transition-colors disabled:opacity-60"
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={isAvatarUploading}
+              >
+                {isAvatarUploading ? <FiLoader size={14} className="animate-spin" /> : null}
+                {isAvatarUploading ? 'Uploading...' : 'Change profile photo'}
               </button>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarFileChange}
+              />
             </div>
           </div>
 
@@ -157,7 +208,7 @@ export default function EditProfilePage() {
               <div className="md:w-3/4">
                 <button
                   type="submit"
-                  disabled={isLoading}
+                  disabled={isLoading || isAvatarUploading}
                   className="bg-[#0095f6] hover:bg-[#1877f2] text-white px-4 py-2 rounded font-bold text-sm disabled:opacity-50"
                 >
                   {isLoading ? 'Saving...' : 'Submit'}

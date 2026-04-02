@@ -1,5 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
-import { X, ChevronLeft, ChevronRight, Heart, Send } from "lucide-react";
+import {
+  FiChevronLeft,
+  FiChevronRight,
+  FiHeart,
+  FiSend,
+  FiX,
+} from "react-icons/fi";
 import type { Story } from "../services/storyService";
 
 interface StoryViewerProps {
@@ -179,7 +185,7 @@ export default function StoryViewer({
             }}
             className="p-1 text-white drop-shadow-md hover:text-gray-300"
           >
-            <X size={24} />
+            <FiX size={24} />
           </button>
         </div>
 
@@ -243,7 +249,7 @@ export default function StoryViewer({
                 disabled={isSendingReply || replyText.trim().length === 0}
                 aria-label="Send reply"
               >
-                <Send size={18} />
+                <FiSend size={18} />
               </button>
             ) : (
               <div className="flex items-center gap-2">
@@ -254,9 +260,9 @@ export default function StoryViewer({
                   disabled={isSubmittingAction}
                   aria-label="Like story"
                 >
-                  <Heart
+                  <FiHeart
                     size={18}
-                    className={currentStory.likedByCurrentUser ? "fill-red-500 text-red-500" : "text-white"}
+                    className={currentStory.likedByCurrentUser ? "text-red-500" : "text-white"}
                   />
                 </button>
 
@@ -267,7 +273,7 @@ export default function StoryViewer({
                   disabled={isSubmittingAction}
                   aria-label="Share story"
                 >
-                  <Send size={18} />
+                  <FiSend size={18} />
                 </button>
               </div>
             )}
@@ -291,7 +297,7 @@ export default function StoryViewer({
           }}
           className="pointer-events-auto rounded-full bg-white/10 p-3 text-white transition hover:bg-white/20"
         >
-          <ChevronLeft size={32} />
+          <FiChevronLeft size={32} />
         </button>
         <button
           onClick={(e) => {
@@ -300,7 +306,7 @@ export default function StoryViewer({
           }}
           className="pointer-events-auto rounded-full bg-white/10 p-3 text-white transition hover:bg-white/20"
         >
-          <ChevronRight size={32} />
+          <FiChevronRight size={32} />
         </button>
       </div>
     </div>

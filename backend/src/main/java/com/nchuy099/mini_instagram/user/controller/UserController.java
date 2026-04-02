@@ -4,6 +4,7 @@ import com.nchuy099.mini_instagram.common.response.ApiResponse;
 import com.nchuy099.mini_instagram.common.response.PagedResponse;
 import com.nchuy099.mini_instagram.post.dto.PostDTO;
 import com.nchuy099.mini_instagram.post.service.PostService;
+import com.nchuy099.mini_instagram.user.dto.HomeSuggestionDTO;
 import com.nchuy099.mini_instagram.user.dto.ProfileHeaderDTO;
 import com.nchuy099.mini_instagram.user.dto.UpdateProfileRequest;
 import com.nchuy099.mini_instagram.user.dto.UpdateUsernameRequest;
@@ -36,6 +37,11 @@ public class UserController {
                 .success(true)
                 .data(profile)
                 .build());
+    }
+
+    @GetMapping("/users/suggestions")
+    public ResponseEntity<ApiResponse<List<HomeSuggestionDTO>>> getHomeSuggestions() {
+        return ResponseEntity.ok(ApiResponse.success(userService.getHomeSuggestions()));
     }
 
     @PatchMapping("/me/profile")

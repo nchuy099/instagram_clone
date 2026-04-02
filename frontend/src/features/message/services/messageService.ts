@@ -26,6 +26,18 @@ export const messageService = {
     await api.post(`/conversations/${conversationId}/read`);
   },
 
+  getSearchCandidates: async (query?: string): Promise<SearchUser[]> => {
+    const trimmed = query?.trim() ?? '';
+    const response = await api.get('/conversations/search-candidates', {
+      params: {
+        q: trimmed || undefined,
+        limit: 30,
+      },
+    });
+
+    return response.data?.data ?? [];
+  },
+
   searchUsers: async (query: string): Promise<SearchUser[]> => {
     const trimmed = query.trim();
     if (!trimmed) {

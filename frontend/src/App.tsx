@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { AuthProvider } from './features/auth/AuthContext';
 import { useAuth } from './hooks/useAuth';
 import LoginPage from './pages/auth/LoginPage';
@@ -80,6 +82,7 @@ function App() {
             }
           />
         </Routes>
+        <ToastContainer position="top-center" autoClose={2200} hideProgressBar newestOnTop />
       </Router>
     </AuthProvider>
   );

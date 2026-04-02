@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Plus, Loader2 } from "lucide-react";
+import { FiPlus, FiLoader } from "react-icons/fi";
 import { useAuth } from "../../../hooks/useAuth";
 import { mediaService } from "../../post/services/mediaService";
 import StoryViewer from "./StoryViewer";
@@ -188,9 +188,9 @@ export default function StoriesBar() {
                 }}
               >
                 {isCreating ? (
-                  <Loader2 className="animate-spin text-white" size={10} />
+                  <FiLoader className="animate-spin text-white" size={10} />
                 ) : (
-                  <Plus className="text-white" size={12} strokeWidth={4} />
+                  <FiPlus className="text-white" size={10} />
                 )}
               </div>
             )}

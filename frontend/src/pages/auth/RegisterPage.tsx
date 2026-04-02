@@ -49,7 +49,10 @@ export default function RegisterPage() {
 
         {/* Logo and Form Box */}
         <div className="bg-white px-10 pt-10 pb-5 md:border border-[#dbdbdb] rounded-[1px] flex flex-col items-center">
-          <h1 className="text-[32px] font-bold text-black mb-6 tracking-tighter">Instagram</h1>
+          <div className="relative mb-6 flex w-full items-center justify-center">
+            <img src="/insta_logo.png" alt="Instagram logo" className="absolute left-2 h-[52px] w-[52px] object-contain" />
+            <span className="font-['Grand_Hotel'] text-[48px] leading-none text-black">Instagram</span>
+          </div>
 
           <p className="text-[#8e8e8e] text-[17px] font-semibold text-center leading-[20px] mb-8">
             Sign up to see photos and videos from your friends.

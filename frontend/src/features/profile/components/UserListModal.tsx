@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, User } from 'lucide-react';
+import { FiUser, FiX } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 import api from '../../../lib/axios';
 
@@ -42,7 +42,7 @@ export default function UserListModal({ isOpen, onClose, title, username, type }
           <div className="w-8"></div>
           <h3 className="font-bold text-base">{title}</h3>
           <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full">
-            <X size={20} />
+            <FiX size={20} />
           </button>
         </div>
 
@@ -62,7 +62,7 @@ export default function UserListModal({ isOpen, onClose, title, username, type }
                         <img src={user.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-gray-200">
-                          <User size={20} className="text-gray-400" />
+                          <FiUser size={18} className="text-gray-400" />
                         </div>
                       )}
                     </div>

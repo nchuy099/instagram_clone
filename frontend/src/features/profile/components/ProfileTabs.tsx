@@ -1,4 +1,4 @@
-import { Grid, Bookmark, PlaySquare } from 'lucide-react';
+import { FiBookmark, FiTag, FiGrid } from 'react-icons/fi';
 
 interface ProfileTabsProps {
   activeTab: 'posts' | 'saved' | 'tagged';
@@ -16,7 +16,7 @@ export default function ProfileTabs({ activeTab, onTabChange, showSaved = false 
             activeTab === 'posts' ? 'border-t border-gray-900 text-gray-900' : 'text-gray-500 hover:text-gray-900'
           }`}
         >
-          <Grid size={14} />
+          <FiGrid size={14} />
           <span>Posts</span>
         </div>
         
@@ -27,7 +27,7 @@ export default function ProfileTabs({ activeTab, onTabChange, showSaved = false 
               activeTab === 'saved' ? 'border-t border-gray-900 text-gray-900' : 'text-gray-500 hover:text-gray-900'
             }`}
           >
-            <Bookmark size={14} />
+            <FiBookmark size={14} />
             <span className="hidden sm:inline">Saved</span>
           </div>
         )}
@@ -38,7 +38,7 @@ export default function ProfileTabs({ activeTab, onTabChange, showSaved = false 
             activeTab === 'tagged' ? 'border-t border-gray-900 text-gray-900' : 'text-gray-500 hover:text-gray-900'
           }`}
         >
-          <PlaySquare size={14} />
+          <FiTag size={14} />
           <span className="hidden sm:inline">Tagged</span>
         </div>
       </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { MessageCircle, Loader2 } from 'lucide-react';
+import { FiMessageCircle, FiLoader, FiX } from 'react-icons/fi';
 import { commentService } from '../services/postService';
 import type { Comment } from '../types';
 import { useAuth } from '../../../hooks/useAuth';
@@ -50,7 +50,7 @@ function CommentItem({ comment, onReply }: CommentItemProps) {
                 onClick={fetchReplies}
                 className="hover:text-gray-900 transition flex items-center"
               >
-                {isLoadingReplies ? <Loader2 size={12} className="animate-spin mr-1" /> : null}
+                {isLoadingReplies ? <FiLoader size={12} className="animate-spin mr-1" /> : null}
                 {showReplies ? 'Hide replies' : `View replies (${comment.replyCount})`}
               </button>
             )}
@@ -130,10 +130,10 @@ export default function CommentSection({ postId }: CommentSectionProps) {
       
       <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
         {isLoading ? (
-          <div className="flex justify-center py-8"><Loader2 className="animate-spin text-gray-300" /></div>
+          <div className="flex justify-center py-8"><FiLoader className="animate-spin text-gray-300" /></div>
         ) : comments.length === 0 ? (
           <div className="text-center py-12 text-gray-500">
-            <MessageCircle size={48} strokeWidth={1} className="mx-auto mb-2 opacity-20" />
+            <FiMessageCircle size={44} className="mx-auto mb-2 opacity-20" />
             <p className="text-sm">No comments yet.</p>
             <p className="text-xs">Start the conversation.</p>
           </div>
@@ -149,7 +149,7 @@ export default function CommentSection({ postId }: CommentSectionProps) {
           <div className="flex items-center justify-between mb-2 px-2 py-1 bg-gray-50 rounded-lg text-xs">
             <span className="text-gray-500">Replying to <span className="font-semibold text-gray-900">@{replyTarget.user.username}</span></span>
             <button onClick={() => setReplyTarget(null)} className="text-gray-400 hover:text-gray-600 transition">
-              <X size={14} />
+              <FiX size={14} />
             </button>
           </div>
         )}
@@ -169,13 +169,10 @@ export default function CommentSection({ postId }: CommentSectionProps) {
             disabled={!newComment.trim() || isSubmitting}
             className="text-[#0095f6] font-semibold text-sm hover:text-[#00376b] disabled:opacity-50 transition"
           >
-            {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : 'Post'}
+            {isSubmitting ? <FiLoader size={16} className="animate-spin" /> : 'Post'}
           </button>
         </form>
       </div>
     </div>
   );
 }
-
-// Add X import for the close button
-import { X } from 'lucide-react';

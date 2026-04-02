@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import java.util.List;
 import java.util.UUID;
@@ -72,6 +73,28 @@ public class FollowService {
                         .bio(follow.getFollowing().getBio())
                         .build());
         return PagedResponse.fromPage(page);
+    }
+
+    @Transactional(readOnly = true)
+    public List<UserDTO> getFollowingForMessageSearch(String query, int limit) {
+        User currentUser = getCurrentAuthenticatedUser();
+        int normalizedLimit = Math.max(1, Math.min(limit, 100));
+        String normalizedQuery = query == null ? "" : query.trim();
+
+        return followRepository.findFollowingForMessageSearch(
+                        currentUser.getId(),
+                        normalizedQuery,
+                        PageRequest.of(0, normalizedLimit)
+                )
+                .stream()
+                .map(follow -> UserDTO.builder()
+                        .id(follow.getFollowing().getId())
+                        .username(follow.getFollowing().getUsername())
+                        .fullName(follow.getFollowing().getFullName())
+                        .avatarUrl(follow.getFollowing().getAvatarUrl())
+                        .bio(follow.getFollowing().getBio())
+                        .build())
+                .toList();
     }
 
     @Transactional

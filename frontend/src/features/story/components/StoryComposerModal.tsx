@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Cropper from 'react-easy-crop';
-import { Loader2, X } from 'lucide-react';
+import { FiLoader, FiX } from 'react-icons/fi';
 import OverlayCanvas from './storyComposer/OverlayCanvas';
 import OverlayControls from './storyComposer/OverlayControls';
 import TransformControls from './storyComposer/TransformControls';
@@ -200,7 +200,7 @@ export default function StoryComposerModal({ file, onClose, onSubmit }: StoryCom
             onClick={onClose}
             className="rounded p-1 text-gray-500 transition hover:bg-gray-100 hover:text-gray-800"
           >
-            <X size={20} />
+            <FiX size={20} />
           </button>
         </div>
 
@@ -268,7 +268,7 @@ export default function StoryComposerModal({ file, onClose, onSubmit }: StoryCom
               disabled={isPublishing || Boolean(error)}
               className="flex w-full items-center justify-center gap-2 rounded-md bg-[#0095f6] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#1877f2] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isPublishing ? <Loader2 size={16} className="animate-spin" /> : null}
+              {isPublishing ? <FiLoader size={16} className="animate-spin" /> : null}
               {isPublishing ? 'Rendering and uploading...' : 'Share Story'}
             </button>
           </div>

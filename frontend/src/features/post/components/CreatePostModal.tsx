@@ -1,5 +1,11 @@
 import React, { useRef, useState } from 'react';
-import { X, Image as ImageIcon, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
+import {
+  FiChevronLeft,
+  FiChevronRight,
+  FiImage,
+  FiLoader,
+  FiX,
+} from 'react-icons/fi';
 import { mediaService } from '../services/mediaService';
 import { postService } from '../services/postService';
 import { MediaType } from '../types';
@@ -224,14 +230,14 @@ export default function CreatePostModal({ isOpen, onClose, onSuccess }: CreatePo
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={handleClose}>
       <button className="absolute top-4 right-4 text-white hover:text-gray-300" onClick={handleClose}>
-        <X size={32} />
+        <FiX size={32} />
       </button>
 
       <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-4 py-2 border-b border-gray-200 min-h-[42px]">
           {step !== 'select' && (
             <button onClick={() => setStep(step === 'caption' ? 'preview' : 'select')} className="text-gray-900">
-              <ChevronLeft size={24} />
+              <FiChevronLeft size={24} />
             </button>
           )}
           <h2 className="flex-1 text-center font-semibold text-gray-900">
@@ -243,7 +249,7 @@ export default function CreatePostModal({ isOpen, onClose, onSuccess }: CreatePo
               disabled={isUploading}
               className="text-[#0095f6] font-semibold hover:text-[#00376b] disabled:opacity-50"
             >
-              {isUploading ? <Loader2 className="animate-spin" size={20} /> : step === 'preview' ? 'Next' : 'Share'}
+              {isUploading ? <FiLoader className="animate-spin" size={18} /> : step === 'preview' ? 'Next' : 'Share'}
             </button>
           )}
         </div>
@@ -251,7 +257,7 @@ export default function CreatePostModal({ isOpen, onClose, onSuccess }: CreatePo
         <div className="flex-1 flex flex-col md:flex-row min-h-0">
           {step === 'select' ? (
             <div className="flex-1 flex flex-col items-center justify-center p-12 min-h-[400px]">
-              <ImageIcon size={96} strokeWidth={1} className="text-gray-400 mb-4" />
+              <FiImage size={88} className="text-gray-400 mb-4" />
               <p className="text-xl text-gray-900 mb-6">Drag photos and videos here</p>
               <button
                 onClick={() => fileInputRef.current?.click()}
@@ -284,14 +290,14 @@ export default function CreatePostModal({ isOpen, onClose, onSuccess }: CreatePo
                       disabled={currentImageIndex === 0}
                       className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 text-white rounded-full p-1.5 hover:bg-black/80 disabled:hidden"
                     >
-                      <ChevronLeft size={20} />
+                      <FiChevronLeft size={20} />
                     </button>
                     <button
                       onClick={() => setCurrentImageIndex((prev) => Math.min(previews.length - 1, prev + 1))}
                       disabled={currentImageIndex === previews.length - 1}
                       className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 text-white rounded-full p-1.5 hover:bg-black/80 disabled:hidden"
                     >
-                      <ChevronRight size={20} />
+                      <FiChevronRight size={20} />
                     </button>
 
                     <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-1.5">

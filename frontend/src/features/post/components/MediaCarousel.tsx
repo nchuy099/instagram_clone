@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import { MediaType } from '../types';
 import type { PostMedia } from '../types';
 
@@ -48,14 +48,14 @@ export default function MediaCarousel({ media }: MediaCarouselProps) {
             disabled={currentIndex === 0}
             className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/70 hover:bg-white text-gray-900 rounded-full p-1 shadow-md transition disabled:hidden"
           >
-            <ChevronLeft size={20} />
+            <FiChevronLeft size={20} />
           </button>
           <button
             onClick={handleNext}
             disabled={currentIndex === media.length - 1}
             className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/70 hover:bg-white text-gray-900 rounded-full p-1 shadow-md transition disabled:hidden"
           >
-            <ChevronRight size={20} />
+            <FiChevronRight size={20} />
           </button>
 
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-1.5 px-2 py-1 ">
