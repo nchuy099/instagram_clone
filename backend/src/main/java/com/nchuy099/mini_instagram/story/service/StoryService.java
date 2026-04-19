@@ -7,8 +7,9 @@ import java.util.Map;
 import java.util.UUID;
 
 public interface StoryService {
-    StoryDTO createStory(String mediaUrl, String mediaType);
+    StoryDTO createStory(String mediaUrl, String mediaType, Integer durationHours);
     List<StoryDTO> getFollowingStories();
+    List<StoryDTO> getUserStories(String username);
     Map<String, List<StoryDTO>> getGroupedStories();
     StoryDTO likeStory(UUID storyId);
     StoryDTO unlikeStory(UUID storyId);

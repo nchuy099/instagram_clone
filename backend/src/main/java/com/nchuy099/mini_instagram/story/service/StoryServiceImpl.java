@@ -1,5 +1,6 @@
 package com.nchuy099.mini_instagram.story.service;
 
+import com.nchuy099.mini_instagram.message.service.MessageService;
 import com.nchuy099.mini_instagram.story.dto.StoryDTO;
 import com.nchuy099.mini_instagram.story.entity.Story;
 import com.nchuy099.mini_instagram.story.entity.StoryLike;
@@ -37,20 +38,34 @@ public class StoryServiceImpl implements StoryService {
     private final StoryLikeRepository storyLikeRepository;
     private final StoryReplyRepository storyReplyRepository;
     private final StoryShareRepository storyShareRepository;
+    private final MessageService messageService;
 
     @Override
     @Transactional
-    public StoryDTO createStory(String mediaUrl, String mediaType) {
+    public StoryDTO createStory(String mediaUrl, String mediaType, Integer durationHours) {
         User currentUser = getCurrentUser();
+        int normalizedDuration = normalizeDurationHours(durationHours);
         Story story = Story.builder()
                 .user(currentUser)
                 .mediaUrl(mediaUrl)
                 .mediaType(mediaType)
-                .expiresAt(ZonedDateTime.now().plusHours(24))
+                .expiresAt(ZonedDateTime.now().plusHours(normalizedDuration))
                 .build();
 
         Story savedStory = storyRepository.save(story);
         return populateStoryMetrics(mapToDTO(savedStory), savedStory, currentUser);
+    }
+
+    private int normalizeDurationHours(Integer durationHours) {
+        if (durationHours == null) {
+            return 24;
+        }
+
+        if (durationHours == 6 || durationHours == 12 || durationHours == 24) {
+            return durationHours;
+        }
+
+        throw new IllegalArgumentException("Story duration must be one of: 6, 12, or 24 hours");
     }
 
     @Override
@@ -70,6 +85,19 @@ public class StoryServiceImpl implements StoryService {
 
         List<Story> activeStories = storyRepository.findByUserInAndExpiresAtAfterOrderByCreatedAtDesc(
                 followedUsers, ZonedDateTime.now());
+
+        return activeStories.stream()
+                .map(story -> populateStoryMetrics(mapToDTO(story), story, currentUser))
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<StoryDTO> getUserStories(String username) {
+        User currentUser = getCurrentUser();
+        User targetUser = userService.getByUsername(username);
+        List<Story> activeStories = storyRepository.findByUserAndExpiresAtAfterOrderByCreatedAtDesc(
+                targetUser, ZonedDateTime.now());
 
         return activeStories.stream()
                 .map(story -> populateStoryMetrics(mapToDTO(story), story, currentUser))
@@ -127,6 +155,10 @@ public class StoryServiceImpl implements StoryService {
                 .user(currentUser)
                 .content(content.trim())
                 .build());
+
+        if (!story.getUser().getId().equals(currentUser.getId())) {
+            messageService.sendStoryReplyMessage(story.getUser().getId(), story.getId(), content.trim());
+        }
 
         return populateStoryMetrics(mapToDTO(story), story, currentUser);
     }

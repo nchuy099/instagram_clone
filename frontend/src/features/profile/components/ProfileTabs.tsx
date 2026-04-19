@@ -1,8 +1,8 @@
-import { FiBookmark, FiTag, FiGrid } from 'react-icons/fi';
+import { FiBookmark, FiGrid } from 'react-icons/fi';
 
 interface ProfileTabsProps {
-  activeTab: 'posts' | 'saved' | 'tagged';
-  onTabChange: (tab: 'posts' | 'saved' | 'tagged') => void;
+  activeTab: 'posts' | 'saved';
+  onTabChange: (tab: 'posts' | 'saved') => void;
   showSaved?: boolean;
 }
 
@@ -31,16 +31,6 @@ export default function ProfileTabs({ activeTab, onTabChange, showSaved = false 
             <span className="hidden sm:inline">Saved</span>
           </div>
         )}
-
-        <div 
-          onClick={() => onTabChange('tagged')}
-          className={`flex items-center space-x-1.5 pt-4 -mt-[1px] cursor-pointer transition ${
-            activeTab === 'tagged' ? 'border-t border-gray-900 text-gray-900' : 'text-gray-500 hover:text-gray-900'
-          }`}
-        >
-          <FiTag size={14} />
-          <span className="hidden sm:inline">Tagged</span>
-        </div>
       </div>
     </div>
   );

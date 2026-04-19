@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   FiChevronLeft,
   FiChevronRight,
@@ -7,6 +7,7 @@ import {
   FiX,
 } from "react-icons/fi";
 import type { Story } from "../services/storyService";
+import { useAuth } from "../../../hooks/useAuth";
 
 interface StoryViewerProps {
   stories: Story[];
@@ -29,6 +30,7 @@ export default function StoryViewer({
   onReply,
   onShare
 }: StoryViewerProps) {
+  const { user } = useAuth();
   const [currentIndex, setCurrentIndex] = useState(initialStoryIndex);
   const [progress, setProgress] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -36,6 +38,7 @@ export default function StoryViewer({
   const [isReplyFocused, setIsReplyFocused] = useState(false);
   const [isSendingReply, setIsSendingReply] = useState(false);
   const [isSubmittingAction, setIsSubmittingAction] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const STORY_DURATION = 5000;
 
@@ -63,7 +66,56 @@ export default function StoryViewer({
     }
   }, [currentIndex, onPrevUser]);
 
+  const currentStory = stories[currentIndex];
+
   useEffect(() => {
+    if (!currentStory) {
+      return;
+    }
+    setProgress(0);
+  }, [currentStory]);
+
+  useEffect(() => {
+    if (!currentStory) {
+      return;
+    }
+
+    if (currentStory.mediaType === "VIDEO") {
+      const video = videoRef.current;
+      if (video == null) {
+        return;
+      }
+
+      const syncProgress = () => {
+        if (video.duration > 0) {
+          setProgress((video.currentTime / video.duration) * 100);
+        }
+      };
+
+      const handleEnded = () => {
+        setProgress(100);
+        handleNext();
+      };
+
+      video.addEventListener("timeupdate", syncProgress);
+      video.addEventListener("loadedmetadata", syncProgress);
+      video.addEventListener("ended", handleEnded);
+
+      if (isPaused) {
+        video.pause();
+      } else {
+        void video.play().catch(() => {
+          // Browser autoplay policy can block unmuted playback without user gesture.
+        });
+      }
+
+      return () => {
+        video.removeEventListener("timeupdate", syncProgress);
+        video.removeEventListener("loadedmetadata", syncProgress);
+        video.removeEventListener("ended", handleEnded);
+      };
+    }
+
     if (isPaused) {
       return;
     }
@@ -79,15 +131,16 @@ export default function StoryViewer({
     }, 100);
 
     return () => clearInterval(interval);
-  }, [isPaused, handleNext]);
-
-  const currentStory = stories[currentIndex];
+  }, [currentStory, handleNext, isPaused]);
 
   if (currentStory == null) {
     return null;
   }
 
   const isReplyMode = isReplyFocused || replyText.trim().length > 0;
+  const isOwnStory =
+    user != null &&
+    (currentStory.userId === user.id || currentStory.username === user.username);
 
   const handleLikeClick = async (event: React.MouseEvent) => {
     event.stopPropagation();
@@ -192,11 +245,12 @@ export default function StoryViewer({
         <div className="flex h-full w-full items-center justify-center">
           {currentStory.mediaType === "VIDEO" ? (
             <video
+              ref={videoRef}
               src={currentStory.mediaUrl}
               autoPlay
-              muted
+              muted={false}
               className="max-h-full max-w-full object-contain"
-              onEnded={handleNext}
+              playsInline
             />
           ) : (
             <img src={currentStory.mediaUrl} alt="Story" className="max-h-full max-w-full object-contain" />
@@ -221,64 +275,66 @@ export default function StoryViewer({
           />
         </div>
 
-        <div
-          className="absolute bottom-0 left-0 right-0 z-30 border-t border-white/15 bg-gradient-to-t from-black/80 to-black/30 p-3"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <form onSubmit={handleReplySubmit} className="flex items-center gap-2">
-            <input
-              value={replyText}
-              onChange={(e) => setReplyText(e.target.value)}
-              onFocus={() => {
-                setIsPaused(true);
-                setIsReplyFocused(true);
-              }}
-              onBlur={() => {
-                setIsPaused(false);
-                setIsReplyFocused(false);
-              }}
-              placeholder="Nhắn trả lời story..."
-              className="w-full rounded-full border border-white/20 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-white/60 focus:border-white/40 focus:outline-none"
-              maxLength={500}
-            />
+        {!isOwnStory && (
+          <div
+            className="absolute bottom-0 left-0 right-0 z-30 border-t border-white/15 bg-gradient-to-t from-black/80 to-black/30 p-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <form onSubmit={handleReplySubmit} className="flex items-center gap-2">
+              <input
+                value={replyText}
+                onChange={(e) => setReplyText(e.target.value)}
+                onFocus={() => {
+                  setIsPaused(true);
+                  setIsReplyFocused(true);
+                }}
+                onBlur={() => {
+                  setIsPaused(false);
+                  setIsReplyFocused(false);
+                }}
+              placeholder={`Reply to @${currentStory.username}...`}
+                className="w-full rounded-full border border-white/20 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-white/60 focus:border-white/40 focus:outline-none"
+                maxLength={500}
+              />
 
-            {isReplyMode ? (
-              <button
-                type="submit"
-                className="rounded-full bg-[#0095f6] p-2 text-white disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={isSendingReply || replyText.trim().length === 0}
-                aria-label="Send reply"
-              >
-                <FiSend size={18} />
-              </button>
-            ) : (
-              <div className="flex items-center gap-2">
+              {isReplyMode ? (
                 <button
-                  type="button"
-                  onClick={handleLikeClick}
-                  className="rounded-full bg-white/10 p-2 text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60"
-                  disabled={isSubmittingAction}
-                  aria-label="Like story"
-                >
-                  <FiHeart
-                    size={18}
-                    className={currentStory.likedByCurrentUser ? "text-red-500" : "text-white"}
-                  />
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleShareClick}
-                  className="rounded-full bg-white/10 p-2 text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60"
-                  disabled={isSubmittingAction}
-                  aria-label="Share story"
+                  type="submit"
+                  className="rounded-full bg-[#0095f6] p-2 text-white disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={isSendingReply || replyText.trim().length === 0}
+                  aria-label="Send reply"
                 >
                   <FiSend size={18} />
                 </button>
-              </div>
-            )}
-          </form>
-        </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleLikeClick}
+                    className="rounded-full bg-white/10 p-2 text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60"
+                    disabled={isSubmittingAction}
+                    aria-label="Like story"
+                  >
+                    <FiHeart
+                      size={18}
+                      className={currentStory.likedByCurrentUser ? "text-red-500" : "text-white"}
+                    />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleShareClick}
+                    className="rounded-full bg-white/10 p-2 text-white transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60"
+                    disabled={isSubmittingAction}
+                    aria-label="Share story"
+                  >
+                    <FiSend size={18} />
+                  </button>
+                </div>
+              )}
+            </form>
+          </div>
+        )}
 
         {isPaused && (
           <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">

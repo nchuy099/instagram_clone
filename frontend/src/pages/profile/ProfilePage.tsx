@@ -19,7 +19,7 @@ export default function ProfilePage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [profile, setProfile] = useState<any>(null);
   const [isProfileLoading, setIsProfileLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'posts' | 'saved' | 'tagged'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'saved'>('posts');
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [isAvatarUploading, setIsAvatarUploading] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -28,7 +28,7 @@ export default function ProfilePage() {
   const isOwnProfile = user?.username === fetchUsername;
   
   const { posts, isLoading: isPostsLoading } = usePosts({ 
-    type: activeTab === 'saved' ? 'saved' : (activeTab === 'posts' ? 'user' : 'feed'), 
+    type: activeTab === 'saved' ? 'saved' : 'user', 
     username: fetchUsername 
   });
 
@@ -126,11 +126,11 @@ export default function ProfilePage() {
               onChange={handleAvatarSelect}
             />
           ) : null}
-          {isOwnProfile ? <OwnStoriesSection username={profile.username} /> : null}
+          <OwnStoriesSection username={profile.username} canCreate={isOwnProfile} />
           <ProfileTabs 
             activeTab={activeTab} 
             onTabChange={setActiveTab} 
-            showSaved={isOwnProfile}
+            showSaved
           />
           <div className="mt-4">
             <PostGrid 

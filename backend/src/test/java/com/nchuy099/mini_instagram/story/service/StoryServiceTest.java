@@ -1,5 +1,6 @@
 package com.nchuy099.mini_instagram.story.service;
 
+import com.nchuy099.mini_instagram.message.service.MessageService;
 import com.nchuy099.mini_instagram.story.dto.StoryDTO;
 import com.nchuy099.mini_instagram.story.entity.Story;
 import com.nchuy099.mini_instagram.story.entity.StoryLike;
@@ -45,6 +46,8 @@ class StoryServiceTest {
     private StoryReplyRepository storyReplyRepository;
     @Mock
     private StoryShareRepository storyShareRepository;
+    @Mock
+    private MessageService messageService;
 
     @InjectMocks
     private StoryServiceImpl storyService;
@@ -114,6 +117,7 @@ class StoryServiceTest {
 
         assertThat(result.getReplyCount()).isEqualTo(1);
         verify(storyReplyRepository).save(any(StoryReply.class));
+        verify(messageService).sendStoryReplyMessage(eq(story.getUser().getId()), eq(story.getId()), eq("Nice story!"));
     }
 
     @Test

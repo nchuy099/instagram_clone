@@ -3,15 +3,18 @@ import { FiPlus, FiLoader } from "react-icons/fi";
 import { useAuth } from "../../../hooks/useAuth";
 import { mediaService } from "../../post/services/mediaService";
 import StoryViewer from "./StoryViewer";
-import StoryComposerModal from "./StoryComposerModal";
+import StoryDurationModal from "./StoryDurationModal";
 import { storyService } from "../services/storyService";
 import type { Story as StoryType } from "../services/storyService";
-import type { StoryMediaType } from "./storyComposer/types";
+import { validateStoryFile, validateVideoDuration } from "./storyComposer/validators";
+import StoryThumbnail from "./StoryThumbnail";
 
 interface StoryUserPreview {
   id: string;
   username: string;
   userAvatarUrl: string;
+  mediaUrl: string;
+  mediaType: "IMAGE" | "VIDEO";
 }
 
 export default function StoriesBar() {
@@ -20,7 +23,8 @@ export default function StoriesBar() {
   const [groupedStories, setGroupedStories] = useState<Record<string, StoryType[]>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
-  const [composerFile, setComposerFile] = useState<File | null>(null);
+  const [selectedStoryFile, setSelectedStoryFile] = useState<File | null>(null);
+  const [isDurationModalOpen, setIsDurationModalOpen] = useState(false);
   const [viewerState, setViewerState] = useState<{ isOpen: boolean; username: string | null }>({
     isOpen: false,
     username: null
@@ -36,7 +40,9 @@ export default function StoriesBar() {
       const usersList = Object.keys(groupedData).map((username) => ({
         username,
         userAvatarUrl: groupedData[username][0].userAvatarUrl,
-        id: groupedData[username][0].id
+        id: groupedData[username][0].id,
+        mediaUrl: groupedData[username][0].mediaUrl,
+        mediaType: groupedData[username][0].mediaType
       }));
       setStories(usersList);
     } catch (err) {
@@ -81,33 +87,57 @@ export default function StoriesBar() {
     return updatedStory;
   };
 
+  const handleCreateStoryFromFile = async (file: File, durationHours: 6 | 12 | 24) => {
+    setIsCreating(true);
+    try {
+      const mediaUrl = await mediaService.uploadFile(file);
+      const mediaType = file.type.startsWith("video/") ? "VIDEO" : "IMAGE";
+      await storyService.createStory({ mediaUrl, mediaType, durationHours });
+      await fetchStories();
+    } catch (err) {
+      console.error("Failed to create story", err);
+      alert("Failed to create story. Please try again.");
+    } finally {
+      setIsCreating(false);
+      setSelectedStoryFile(null);
+      setIsDurationModalOpen(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file == null) {
       return;
     }
-
-    setComposerFile(file);
-  };
-
-  const handleComposerSubmit = async (renderedFile: File, mediaType: StoryMediaType) => {
-    setIsCreating(true);
-
-    try {
-      const mediaUrl = await mediaService.uploadFile(renderedFile);
-      await storyService.createStory({ mediaUrl, mediaType });
-      await fetchStories();
-    } catch (err) {
-      console.error("Failed to create story", err);
-      alert("Failed to create story. Please try again.");
-      throw err;
-    } finally {
-      setIsCreating(false);
-      setComposerFile(null);
+    const typeValidation = validateStoryFile(file);
+    if (!typeValidation.ok) {
+      alert(typeValidation.reason || "Invalid media file.");
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
+      return;
     }
+
+    if (file.type.startsWith("video/")) {
+      void validateVideoDuration(file).then((durationValidation) => {
+        if (!durationValidation.ok) {
+          alert(durationValidation.reason || "Video is not supported.");
+          if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+          }
+          return;
+        }
+        setSelectedStoryFile(file);
+        setIsDurationModalOpen(true);
+      });
+      return;
+    }
+
+    setSelectedStoryFile(file);
+    setIsDurationModalOpen(true);
   };
 
   const handleUserClick = (username: string) => {
@@ -136,11 +166,11 @@ export default function StoriesBar() {
 
   if (isLoading) {
     return (
-      <div className="mb-6 flex space-x-4 overflow-x-auto rounded-lg border border-gray-300 bg-white p-4">
+      <div className="mb-6 flex space-x-5 overflow-x-auto px-1 py-2">
         {[...Array(8)].map((_, index) => (
           <div key={index} className="flex flex-shrink-0 flex-col items-center space-y-1">
-            <div className="h-16 w-16 animate-pulse rounded-full border-2 border-white bg-gray-200 ring-2 ring-gray-100" />
-            <div className="h-2 w-12 animate-pulse rounded bg-gray-200" />
+            <div className="h-20 w-20 animate-pulse rounded-full border-2 border-white bg-gray-200 ring-2 ring-gray-100" />
+            <div className="h-2 w-16 animate-pulse rounded bg-gray-200" />
           </div>
         ))}
       </div>
@@ -152,7 +182,7 @@ export default function StoriesBar() {
 
   return (
     <>
-      <div className="custom-scrollbar mb-6 flex space-x-4 overflow-x-auto rounded-lg border border-gray-300 bg-white p-4 shadow-sm">
+      <div className="custom-scrollbar mb-6 flex space-x-5 overflow-x-auto px-1 py-2">
         <div className="group flex flex-shrink-0 cursor-pointer flex-col items-center space-y-1">
           <div
             className="relative"
@@ -171,31 +201,32 @@ export default function StoriesBar() {
                   : "rounded-full bg-gray-200 p-[2px] transition-all group-hover:bg-gray-300"
               }
             >
-              {user?.avatarUrl ? (
-                <img src={user.avatarUrl} alt="Your story" className="h-14 w-14 rounded-full border-2 border-white object-cover" />
-              ) : (
-                <div className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-white bg-gray-100 text-xs font-bold uppercase text-gray-500">
-                  {user?.username?.substring(0, 2)}
-                </div>
-              )}
+              <StoryThumbnail
+                mediaUrl={hasOwnStory ? groupedStories[ownUsername]?.[0]?.mediaUrl : undefined}
+                mediaType={hasOwnStory ? groupedStories[ownUsername]?.[0]?.mediaType : undefined}
+                fallbackAvatarUrl={user?.avatarUrl}
+                fallbackLabel={user?.username}
+                alt="Your story"
+                className="h-20 w-20 rounded-full border-2 border-white object-cover"
+              />
             </div>
             {hasOwnStory ? null : (
               <div
-                className="absolute bottom-0 right-0 rounded-full border-2 border-white bg-[#0095f6] p-1 shadow-sm"
+                className="absolute bottom-1 right-1 rounded-full border-2 border-white bg-[#0095f6] p-1.5 shadow-sm"
                 onClick={(event) => {
                   event.stopPropagation();
                   fileInputRef.current?.click();
                 }}
               >
                 {isCreating ? (
-                  <FiLoader className="animate-spin text-white" size={10} />
+                  <FiLoader className="animate-spin text-white" size={12} />
                 ) : (
-                  <FiPlus className="text-white" size={10} />
+                  <FiPlus className="text-white" size={12} />
                 )}
               </div>
             )}
           </div>
-          <span className="w-16 truncate text-center text-xs text-gray-500">Your story</span>
+          <span className="w-20 truncate text-center text-sm text-gray-500">Your story</span>
           <input
             type="file"
             ref={fileInputRef}
@@ -213,19 +244,16 @@ export default function StoriesBar() {
               onClick={() => handleUserClick(story.username)}
             >
               <div className="rounded-full bg-gradient-to-tr from-yellow-400 to-fuchsia-600 p-[2px] transition-transform duration-200 group-hover:scale-105">
-                {story.userAvatarUrl ? (
-                  <img
-                    src={story.userAvatarUrl}
-                    alt={story.username}
-                    className="h-14 w-14 rounded-full border-2 border-white object-cover"
-                  />
-                ) : (
-                  <div className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-white bg-gray-100 text-xs font-bold uppercase text-gray-400">
-                    {story.username.substring(0, 2)}
-                  </div>
-                )}
+                <StoryThumbnail
+                  mediaUrl={story.mediaUrl}
+                  mediaType={story.mediaType}
+                  fallbackAvatarUrl={story.userAvatarUrl}
+                  fallbackLabel={story.username}
+                  alt={story.username}
+                  className="h-20 w-20 rounded-full border-2 border-white object-cover"
+                />
               </div>
-              <span className="w-16 truncate text-center text-xs text-gray-700">{story.username}</span>
+              <span className="w-20 truncate text-center text-sm text-gray-700">{story.username}</span>
             </div>
           )
         )}
@@ -243,18 +271,22 @@ export default function StoriesBar() {
         />
       )}
 
-      {composerFile && (
-        <StoryComposerModal
-          file={composerFile}
+      {isDurationModalOpen && selectedStoryFile ? (
+        <StoryDurationModal
+          file={selectedStoryFile}
+          isOpen={isDurationModalOpen}
+          isSubmitting={isCreating}
+          onConfirm={(hours) => void handleCreateStoryFromFile(selectedStoryFile, hours)}
           onClose={() => {
-            setComposerFile(null);
+            setIsDurationModalOpen(false);
+            setSelectedStoryFile(null);
             if (fileInputRef.current) {
               fileInputRef.current.value = "";
             }
           }}
-          onSubmit={handleComposerSubmit}
         />
-      )}
+      ) : null}
+
     </>
   );
 }

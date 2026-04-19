@@ -16,13 +16,18 @@ export interface Story {
 }
 
 export const storyService = {
-  createStory: async (data: { mediaUrl: string; mediaType: string }) => {
+  createStory: async (data: { mediaUrl: string; mediaType: string; durationHours?: 6 | 12 | 24 }) => {
     const response = await api.post('/stories', data);
     return response.data.data as Story;
   },
 
   getStoriesFeed: async () => {
     const response = await api.get('/stories/feed');
+    return response.data.data as Story[];
+  },
+
+  getUserStories: async (username: string) => {
+    const response = await api.get('/stories/user/' + username);
     return response.data.data as Story[];
   },
 

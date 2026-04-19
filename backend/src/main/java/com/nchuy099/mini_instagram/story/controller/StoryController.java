@@ -19,15 +19,28 @@ public class StoryController {
     private final StoryService storyService;
 
     @PostMapping
-    public ResponseEntity<ApiResponse<StoryDTO>> createStory(@RequestBody Map<String, String> request) {
-        String mediaUrl = request.get("mediaUrl");
-        String mediaType = request.get("mediaType");
-        return ResponseEntity.ok(ApiResponse.success(storyService.createStory(mediaUrl, mediaType)));
+    public ResponseEntity<ApiResponse<StoryDTO>> createStory(@RequestBody Map<String, Object> request) {
+        String mediaUrl = request.get("mediaUrl") == null ? null : String.valueOf(request.get("mediaUrl"));
+        String mediaType = request.get("mediaType") == null ? null : String.valueOf(request.get("mediaType"));
+        Integer durationHours = null;
+        Object durationRaw = request.get("durationHours");
+        if (durationRaw instanceof Number number) {
+            durationHours = number.intValue();
+        } else if (durationRaw instanceof String raw && !raw.isBlank()) {
+            durationHours = Integer.parseInt(raw);
+        }
+
+        return ResponseEntity.ok(ApiResponse.success(storyService.createStory(mediaUrl, mediaType, durationHours)));
     }
 
     @GetMapping("/feed")
     public ResponseEntity<ApiResponse<List<StoryDTO>>> getStoriesFeed() {
         return ResponseEntity.ok(ApiResponse.success(storyService.getFollowingStories()));
+    }
+
+    @GetMapping("/user/{username}")
+    public ResponseEntity<ApiResponse<List<StoryDTO>>> getStoriesByUser(@PathVariable String username) {
+        return ResponseEntity.ok(ApiResponse.success(storyService.getUserStories(username)));
     }
 
     @GetMapping("/grouped")

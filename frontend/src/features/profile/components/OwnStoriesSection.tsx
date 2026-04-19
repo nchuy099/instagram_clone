@@ -1,40 +1,43 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FiPlus, FiLoader } from "react-icons/fi";
 import { storyService } from "../../story/services/storyService";
 import type { Story } from "../../story/services/storyService";
 import { mediaService } from "../../post/services/mediaService";
 import StoryViewer from "../../story/components/StoryViewer";
-import StoryComposerModal from "../../story/components/StoryComposerModal";
-import type { StoryMediaType } from "../../story/components/storyComposer/types";
+import StoryDurationModal from "../../story/components/StoryDurationModal";
+import { validateStoryFile, validateVideoDuration } from "../../story/components/storyComposer/validators";
+import StoryThumbnail from "../../story/components/StoryThumbnail";
 
 interface OwnStoriesSectionProps {
   username: string;
+  canCreate?: boolean;
 }
 
-export default function OwnStoriesSection({ username }: OwnStoriesSectionProps) {
+export default function OwnStoriesSection({ username, canCreate = true }: OwnStoriesSectionProps) {
   const [stories, setStories] = useState<Story[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
-  const [composerFile, setComposerFile] = useState<File | null>(null);
+  const [selectedStoryFile, setSelectedStoryFile] = useState<File | null>(null);
+  const [isDurationModalOpen, setIsDurationModalOpen] = useState(false);
   const [isViewerOpen, setIsViewerOpen] = useState(false);
   const [selectedStoryIndex, setSelectedStoryIndex] = useState(0);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const fetchOwnStories = async () => {
+  const fetchOwnStories = useCallback(async () => {
     try {
-      const groupedData = await storyService.getGroupedStories();
-      setStories(groupedData[username] || []);
+      const userStories = await storyService.getUserStories(username);
+      setStories(userStories || []);
     } catch (error) {
       console.error("Failed to fetch own stories", error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [username]);
 
   useEffect(() => {
     fetchOwnStories();
-  }, [username]);
+  }, [fetchOwnStories]);
 
   const applyStoryUpdate = (updatedStory: Story) => {
     setStories((prev) => prev.map((story) => (story.id === updatedStory.id ? updatedStory : story)));
@@ -60,31 +63,57 @@ export default function OwnStoriesSection({ username }: OwnStoriesSectionProps) 
     return updatedStory;
   };
 
+  const handleCreateStoryFromFile = async (file: File, durationHours: 6 | 12 | 24) => {
+    setIsCreating(true);
+    try {
+      const mediaUrl = await mediaService.uploadFile(file);
+      const mediaType = file.type.startsWith("video/") ? "VIDEO" : "IMAGE";
+      await storyService.createStory({ mediaUrl, mediaType, durationHours });
+      await fetchOwnStories();
+    } catch (error) {
+      console.error("Failed to create story", error);
+      alert("Failed to create story. Please try again.");
+    } finally {
+      setIsCreating(false);
+      setSelectedStoryFile(null);
+      setIsDurationModalOpen(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file == null) {
       return;
     }
-    setComposerFile(file);
-  };
-
-  const handleComposerSubmit = async (renderedFile: File, mediaType: StoryMediaType) => {
-    setIsCreating(true);
-    try {
-      const mediaUrl = await mediaService.uploadFile(renderedFile);
-      await storyService.createStory({ mediaUrl, mediaType });
-      await fetchOwnStories();
-    } catch (error) {
-      console.error("Failed to create story", error);
-      alert("Failed to create story. Please try again.");
-      throw error;
-    } finally {
-      setIsCreating(false);
-      setComposerFile(null);
+    const typeValidation = validateStoryFile(file);
+    if (!typeValidation.ok) {
+      alert(typeValidation.reason || "Invalid media file.");
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
+      return;
     }
+
+    if (file.type.startsWith("video/")) {
+      void validateVideoDuration(file).then((durationValidation) => {
+        if (!durationValidation.ok) {
+          alert(durationValidation.reason || "Video is not supported.");
+          if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+          }
+          return;
+        }
+        setSelectedStoryFile(file);
+        setIsDurationModalOpen(true);
+      });
+      return;
+    }
+
+    setSelectedStoryFile(file);
+    setIsDurationModalOpen(true);
   };
 
   return (
@@ -101,57 +130,49 @@ export default function OwnStoriesSection({ username }: OwnStoriesSectionProps) 
             className="group flex flex-shrink-0 flex-col items-center"
           >
             <div className="rounded-full bg-gradient-to-tr from-yellow-400 to-fuchsia-600 p-[2px]">
-              {story.userAvatarUrl ? (
-                <img src={story.userAvatarUrl} alt={story.username} className="h-16 w-16 rounded-full border-2 border-white object-cover" />
-              ) : (
-                <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-white bg-gray-100 text-xs font-bold uppercase text-gray-500">
-                  {username.substring(0, 2)}
-                </div>
-              )}
+              <StoryThumbnail
+                mediaUrl={story.mediaUrl}
+                mediaType={story.mediaType}
+                fallbackAvatarUrl={story.userAvatarUrl}
+                fallbackLabel={story.username}
+                alt={story.username}
+                className="h-16 w-16 rounded-full border-2 border-white object-cover"
+              />
             </div>
             <span className="mt-1 max-w-16 truncate text-xs text-gray-700">Story {index + 1}</span>
           </button>
         ))}
 
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          className="group flex flex-shrink-0 flex-col items-center"
-        >
-          <div className="flex h-16 w-16 items-center justify-center rounded-full border border-gray-400 bg-gray-100 text-gray-500 transition group-hover:bg-gray-200">
-            {isCreating ? <FiLoader size={24} className="animate-spin" /> : <FiPlus size={24} />}
-          </div>
-          <span className="mt-1 text-xs text-gray-700">New</span>
-        </button>
+        {canCreate ? (
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="group flex flex-shrink-0 flex-col items-center"
+          >
+            <div className="flex h-16 w-16 items-center justify-center rounded-full border border-gray-400 bg-gray-100 text-gray-500 transition group-hover:bg-gray-200">
+              {isCreating ? <FiLoader size={24} className="animate-spin" /> : <FiPlus size={24} />}
+            </div>
+            <span className="mt-1 text-xs text-gray-700">New</span>
+          </button>
+        ) : null}
       </div>
 
       {isLoading && (
         <div className="mt-3 inline-flex items-center gap-2 text-xs text-gray-500">
           <FiLoader size={14} className="animate-spin" />
-          Dang tai story...
+          Loading stories...
         </div>
       )}
 
-      <input
-        type="file"
-        ref={fileInputRef}
-        className="hidden"
-        accept="image/*,video/*"
-        onChange={handleFileSelect}
-      />
-
-      {composerFile && (
-        <StoryComposerModal
-          file={composerFile}
-          onClose={() => {
-            setComposerFile(null);
-            if (fileInputRef.current) {
-              fileInputRef.current.value = "";
-            }
-          }}
-          onSubmit={handleComposerSubmit}
+      {canCreate ? (
+        <input
+          type="file"
+          ref={fileInputRef}
+          className="hidden"
+          accept="image/*,video/*"
+          onChange={handleFileSelect}
         />
-      )}
+      ) : null}
 
       {isViewerOpen && stories.length > 0 && (
         <StoryViewer
@@ -163,6 +184,22 @@ export default function OwnStoriesSection({ username }: OwnStoriesSectionProps) 
           onShare={handleShareStory}
         />
       )}
+
+      {canCreate && isDurationModalOpen && selectedStoryFile ? (
+        <StoryDurationModal
+          file={selectedStoryFile}
+          isOpen={isDurationModalOpen}
+          isSubmitting={isCreating}
+          onConfirm={(hours) => void handleCreateStoryFromFile(selectedStoryFile, hours)}
+          onClose={() => {
+            setIsDurationModalOpen(false);
+            setSelectedStoryFile(null);
+            if (fileInputRef.current) {
+              fileInputRef.current.value = "";
+            }
+          }}
+        />
+      ) : null}
     </div>
   );
 }
