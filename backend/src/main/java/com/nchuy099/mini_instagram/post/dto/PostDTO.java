@@ -1,5 +1,6 @@
 package com.nchuy099.mini_instagram.post.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.nchuy099.mini_instagram.user.dto.UserDTO;
 import lombok.Builder;
 import lombok.Data;
@@ -22,6 +23,10 @@ public class PostDTO {
     private LocalDateTime createdAt;
     
     // Viewer state
-    private boolean isLiked;
-    private boolean isSaved;
+    @JsonProperty("isLiked")
+    private boolean liked;
+    @JsonProperty("isSaved")
+    private boolean saved;
+    @JsonProperty("isFollowing")
+    private boolean following;
 }

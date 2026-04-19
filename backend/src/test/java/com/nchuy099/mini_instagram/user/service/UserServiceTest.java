@@ -84,6 +84,23 @@ class UserServiceTest {
     }
 
     @Test
+    void getUserProfile_WhenAvatarMissing_ShouldReturnDefaultAvatarUrl() {
+        String targetUsername = "targetuser";
+        User targetUser = User.builder()
+                .id(UUID.randomUUID())
+                .username(targetUsername)
+                .avatarUrl(null)
+                .build();
+
+        when(userRepository.findByUsername(targetUsername)).thenReturn(Optional.of(targetUser));
+        SecurityContextHolder.clearContext();
+
+        ProfileHeaderDTO result = userService.getUserProfile(targetUsername);
+
+        assertThat(result.getAvatarUrl()).isNotBlank();
+    }
+
+    @Test
     void getUserProfile_WhenUserNotFound_ShouldThrowException() {
         when(userRepository.findByUsername("none")).thenReturn(Optional.empty());
 

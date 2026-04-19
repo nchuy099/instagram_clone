@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -129,5 +130,63 @@ class CommentServiceTest {
 
         assertThat(result.getParentCommentId()).isEqualTo(parentId);
         assertThat(post.getCommentCount()).isEqualTo(2);
+        ArgumentCaptor<Comment> commentCaptor = ArgumentCaptor.forClass(Comment.class);
+        verify(commentRepository).save(commentCaptor.capture());
+        assertThat(commentCaptor.getValue().getParentComment().getId()).isEqualTo(parentId);
+    }
+
+    @Test
+    void createReplyToReply_WhenValid_ShouldReparentToTopLevelParent() {
+        UUID postId = UUID.randomUUID();
+        UUID topLevelParentId = UUID.randomUUID();
+        UUID nestedReplyId = UUID.randomUUID();
+        User currentUser = User.builder().id(UUID.randomUUID()).username("me").build();
+        authenticateUser("me");
+
+        Post post = Post.builder().id(postId).allowComments(true).commentCount(2).build();
+        Comment topLevelParent = Comment.builder().id(topLevelParentId).post(post).build();
+        Comment nestedReply = Comment.builder().id(nestedReplyId).post(post).parentComment(topLevelParent).build();
+
+        CreateCommentRequest request = new CreateCommentRequest();
+        request.setContent("Reply to reply");
+        request.setParentCommentId(nestedReplyId);
+
+        when(userRepository.findByUsernameOrEmailOrPhoneNumber("me", "me", "me")).thenReturn(Optional.of(currentUser));
+        when(postRepository.findById(postId)).thenReturn(Optional.of(post));
+        when(commentRepository.findById(nestedReplyId)).thenReturn(Optional.of(nestedReply));
+        when(commentRepository.save(any(Comment.class))).thenAnswer(i -> i.getArgument(0));
+
+        CommentDTO result = commentService.createComment(postId, request);
+
+        ArgumentCaptor<Comment> commentCaptor = ArgumentCaptor.forClass(Comment.class);
+        verify(commentRepository).save(commentCaptor.capture());
+        assertThat(commentCaptor.getValue().getParentComment().getId()).isEqualTo(topLevelParentId);
+        assertThat(result.getParentCommentId()).isEqualTo(topLevelParentId);
+        assertThat(post.getCommentCount()).isEqualTo(3);
+    }
+
+    @Test
+    void createReply_WhenParentCommentBelongsToDifferentPost_ShouldThrowException() {
+        UUID postId = UUID.randomUUID();
+        UUID parentPostId = UUID.randomUUID();
+        UUID parentId = UUID.randomUUID();
+        User currentUser = User.builder().id(UUID.randomUUID()).username("me").build();
+        authenticateUser("me");
+
+        Post post = Post.builder().id(postId).allowComments(true).commentCount(0).build();
+        Post parentPost = Post.builder().id(parentPostId).build();
+        Comment parentComment = Comment.builder().id(parentId).post(parentPost).build();
+
+        CreateCommentRequest request = new CreateCommentRequest();
+        request.setContent("Reply");
+        request.setParentCommentId(parentId);
+
+        when(userRepository.findByUsernameOrEmailOrPhoneNumber("me", "me", "me")).thenReturn(Optional.of(currentUser));
+        when(postRepository.findById(postId)).thenReturn(Optional.of(post));
+        when(commentRepository.findById(parentId)).thenReturn(Optional.of(parentComment));
+
+        assertThatThrownBy(() -> commentService.createComment(postId, request))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Parent comment must belong to the same post");
     }
 }

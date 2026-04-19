@@ -40,8 +40,8 @@ export default function HomePage() {
 
   return (
     <MainLayout>
-      <div className="mx-auto flex w-full max-w-[980px] gap-10 px-4 py-8">
-        <div className="w-full max-w-[470px]">
+      <div className="mx-auto flex w-full max-w-[1320px] gap-14 px-8 py-8">
+        <div className="w-full max-w-[620px]">
           <StoriesBar />
           {isLoading ? (
             <div className="mt-20 flex flex-col items-center justify-center space-y-4">
@@ -72,29 +72,29 @@ export default function HomePage() {
           )}
         </div>
 
-        <aside className="sticky top-8 hidden h-fit w-[320px] lg:block">
-          <div className="mb-5 flex items-center justify-between">
+        <aside className="sticky top-8 hidden h-fit w-[380px] lg:block">
+          <div className="mb-6 flex items-center justify-between">
             <div className="flex min-w-0 items-center gap-3">
-              <div className="h-11 w-11 overflow-hidden rounded-full bg-gray-200">
+              <div className="h-14 w-14 overflow-hidden rounded-full bg-gray-200">
                 {user?.avatarUrl ? (
                   <img src={user.avatarUrl} alt={user.username} className="h-full w-full object-cover" />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center text-xs text-gray-500">U</div>
+                  <div className="flex h-full w-full items-center justify-center text-sm text-gray-500">U</div>
                 )}
               </div>
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-gray-900">{user?.username || 'username'}</p>
-                <p className="truncate text-sm text-gray-500">{user?.fullName || ''}</p>
+                <p className="truncate text-base font-semibold text-gray-900">{user?.username || 'username'}</p>
+                <p className="truncate text-base text-gray-500">{user?.fullName || ''}</p>
               </div>
             </div>
-            <button type="button" className="text-xs font-semibold text-[#0095f6]">
+            <button type="button" className="text-sm font-semibold text-[#0095f6]">
               Switch
             </button>
           </div>
 
-          <div className="mb-4 flex items-center justify-between">
-            <p className="text-sm font-semibold text-gray-500">Suggested for you</p>
-            <button type="button" className="text-xs font-semibold text-gray-900">
+          <div className="mb-5 flex items-center justify-between">
+            <p className="text-base font-semibold text-gray-500">Suggested for you</p>
+            <button type="button" className="text-sm font-semibold text-gray-900">
               See all
             </button>
           </div>
@@ -105,21 +105,21 @@ export default function HomePage() {
               Loading suggestions...
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {suggestions.map((suggestion) => (
-                <div key={suggestion.id} className="flex items-center justify-between gap-3">
+                <div key={suggestion.id} className="flex items-center justify-between gap-4">
                   <Link to={`/${suggestion.username}`} className="flex min-w-0 items-center gap-3">
-                    <div className="h-11 w-11 overflow-hidden rounded-full bg-gray-200">
+                    <div className="h-14 w-14 overflow-hidden rounded-full bg-gray-200">
                       {suggestion.avatarUrl ? (
                         <img src={suggestion.avatarUrl} alt={suggestion.username} className="h-full w-full object-cover" />
                       ) : null}
                     </div>
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold text-gray-900">{suggestion.username}</p>
-                      <p className="truncate text-xs text-gray-500">{suggestion.subtitle || 'Suggested for you'}</p>
+                      <p className="truncate text-base font-semibold text-gray-900">{suggestion.username}</p>
+                      <p className="truncate text-sm text-gray-500">{suggestion.subtitle || 'Suggested for you'}</p>
                     </div>
                   </Link>
-                  <button type="button" className="shrink-0 text-xs font-semibold text-[#0095f6]">
+                  <button type="button" className="shrink-0 text-sm font-semibold text-[#0095f6]">
                     Follow
                   </button>
                 </div>
@@ -131,4 +131,3 @@ export default function HomePage() {
     </MainLayout>
   );
 }
-

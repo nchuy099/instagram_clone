@@ -29,6 +29,7 @@ export interface MediaTransformState {
 
 export interface RenderStoryOptions {
   sourceUrl: string;
+  sourceFile?: File;
   transform: MediaTransformState;
   layers: OverlayLayer[];
   previewSize: {

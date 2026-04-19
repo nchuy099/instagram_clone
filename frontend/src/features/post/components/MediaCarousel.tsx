@@ -30,7 +30,10 @@ export default function MediaCarousel({ media }: MediaCarouselProps) {
         <video
           src={currentMedia.url}
           poster={currentMedia.thumbnailUrl || undefined}
-          controls
+          autoPlay
+          loop
+          muted={false}
+          playsInline
           className="max-w-full max-h-full object-contain"
         />
       ) : (

@@ -213,6 +213,26 @@ class AuthServiceTest {
     }
 
     @Test
+    void getCurrentUser_WhenAvatarMissing_ShouldReturnDefaultAvatarUrl() {
+        Authentication auth = mock(Authentication.class);
+        when(auth.isAuthenticated()).thenReturn(true);
+        when(auth.getName()).thenReturn("testuser");
+        SecurityContextHolder.getContext().setAuthentication(auth);
+
+        User user = User.builder()
+                .id(UUID.randomUUID())
+                .username("testuser")
+                .avatarUrl(null)
+                .build();
+        when(userRepository.findByUsernameOrEmailOrPhoneNumber("testuser", "testuser", "testuser"))
+                .thenReturn(Optional.of(user));
+
+        UserDTO result = authService.getCurrentUser();
+
+        assertThat(result.getAvatarUrl()).isNotBlank();
+    }
+
+    @Test
     void getCurrentUser_WhenNotAuthenticated_ShouldThrowException() {
         SecurityContextHolder.clearContext();
 

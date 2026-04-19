@@ -16,6 +16,7 @@ import com.nchuy099.mini_instagram.post.repository.PostHashtagRepository;
 import com.nchuy099.mini_instagram.post.repository.PostMediaRepository;
 import com.nchuy099.mini_instagram.post.repository.PostRepository;
 import com.nchuy099.mini_instagram.post.repository.PostSaveRepository;
+import com.nchuy099.mini_instagram.user.repository.FollowRepository;
 import com.nchuy099.mini_instagram.user.dto.UserDTO;
 import com.nchuy099.mini_instagram.user.entity.User;
 import com.nchuy099.mini_instagram.user.repository.UserRepository;
@@ -51,6 +52,7 @@ public class PostServiceImpl implements PostService {
     private final HashtagRepository hashtagRepository;
     private final PostHashtagRepository postHashtagRepository;
     private final UserRepository userRepository;
+    private final FollowRepository followRepository;
 
     @Override
     @Transactional
@@ -274,9 +276,13 @@ public class PostServiceImpl implements PostService {
 
         boolean isLiked = false;
         boolean isSaved = false;
+        boolean isFollowing = false;
         if (currentUser != null) {
             isLiked = postLikeRepository.existsByPostAndUser(post, currentUser);
             isSaved = postSaveRepository.existsByPostAndUser(post, currentUser);
+            if (!currentUser.getId().equals(author.getId())) {
+                isFollowing = followRepository.existsByFollowerIdAndFollowingId(currentUser.getId(), author.getId());
+            }
         }
 
         return PostDTO.builder()
@@ -289,8 +295,9 @@ public class PostServiceImpl implements PostService {
                 .commentCount(post.getCommentCount())
                 .allowComments(post.isAllowComments())
                 .createdAt(post.getCreatedAt())
-                .isLiked(isLiked)
-                .isSaved(isSaved)
+                .liked(isLiked)
+                .saved(isSaved)
+                .following(isFollowing)
                 .build();
     }
 

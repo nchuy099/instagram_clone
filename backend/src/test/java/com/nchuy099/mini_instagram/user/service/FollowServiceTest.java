@@ -27,6 +27,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -157,5 +158,78 @@ class FollowServiceTest {
  
         assertThat(result.getContent()).hasSize(1);
         assertThat(result.getContent().get(0).getUsername()).isEqualTo("following");
+    }
+
+    @Test
+    void getFollowingForMessageSearch_ShouldMergeFollowingAndFollowersWithoutDuplicates() {
+        UUID currentUserId = UUID.randomUUID();
+        User currentUser = User.builder().id(currentUserId).username("me").build();
+        authenticateUser("me");
+
+        User followingOnly = User.builder()
+                .id(UUID.randomUUID())
+                .username("following-only")
+                .fullName("Following Only")
+                .build();
+        User shared = User.builder()
+                .id(UUID.randomUUID())
+                .username("shared")
+                .fullName("Shared User")
+                .build();
+        User followerOnly = User.builder()
+                .id(UUID.randomUUID())
+                .username("follower-only")
+                .fullName("Follower Only")
+                .build();
+        User self = User.builder().id(currentUserId).username("me").build();
+
+        when(userRepository.findByUsernameOrEmailOrPhoneNumber("me", "me", "me")).thenReturn(Optional.of(currentUser));
+        when(followRepository.findFollowingForMessageSearch(eq(currentUserId), eq("alice"), any(Pageable.class)))
+                .thenReturn(List.of(
+                        Follow.builder().following(followingOnly).build(),
+                        Follow.builder().following(shared).build()
+                ));
+        when(followRepository.findFollowersForMessageSearch(eq(currentUserId), eq("alice"), any(Pageable.class)))
+                .thenReturn(List.of(
+                        Follow.builder().follower(shared).build(),
+                        Follow.builder().follower(self).build(),
+                        Follow.builder().follower(followerOnly).build()
+                ));
+
+        List<UserDTO> result = followService.getFollowingForMessageSearch("  alice  ", 3);
+
+        assertThat(result).extracting(UserDTO::getUsername)
+                .containsExactly("following-only", "shared", "follower-only");
+        verify(followRepository).findFollowingForMessageSearch(eq(currentUserId), eq("alice"), any(Pageable.class));
+        verify(followRepository).findFollowersForMessageSearch(eq(currentUserId), eq("alice"), any(Pageable.class));
+    }
+
+    @Test
+    void getFollowingForMessageSearch_ShouldRespectLimitAfterDeduplication() {
+        UUID currentUserId = UUID.randomUUID();
+        User currentUser = User.builder().id(currentUserId).username("me").build();
+        authenticateUser("me");
+
+        User first = User.builder().id(UUID.randomUUID()).username("first").build();
+        User second = User.builder().id(UUID.randomUUID()).username("second").build();
+        User third = User.builder().id(UUID.randomUUID()).username("third").build();
+
+        when(userRepository.findByUsernameOrEmailOrPhoneNumber("me", "me", "me")).thenReturn(Optional.of(currentUser));
+        when(followRepository.findFollowingForMessageSearch(eq(currentUserId), eq(""), any(Pageable.class)))
+                .thenReturn(List.of(
+                        Follow.builder().following(first).build(),
+                        Follow.builder().following(second).build()
+                ));
+        when(followRepository.findFollowersForMessageSearch(eq(currentUserId), eq(""), any(Pageable.class)))
+                .thenReturn(List.of(
+                        Follow.builder().follower(second).build(),
+                        Follow.builder().follower(third).build()
+                ));
+
+        List<UserDTO> result = followService.getFollowingForMessageSearch(null, 2);
+
+        assertThat(result).extracting(UserDTO::getUsername)
+                .containsExactly("first", "second");
+        assertThat(result).hasSize(2);
     }
 }

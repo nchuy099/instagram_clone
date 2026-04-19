@@ -27,7 +27,7 @@ function loadVideo(src: string): Promise<HTMLVideoElement> {
     const video = document.createElement('video');
     video.crossOrigin = 'anonymous';
     video.preload = 'auto';
-    video.muted = true;
+    video.muted = false;
     video.playsInline = true;
     video.src = src;
 
@@ -141,8 +141,49 @@ export async function renderImageStoryFile(options: RenderStoryOptions): Promise
   return buildFile(blob, `story-${Date.now()}.jpg`, 'image/jpeg');
 }
 
-function getSupportedMimeType(): string {
-  const candidates = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+function extensionFromMimeType(mimeType: string): string {
+  const normalized = mimeType.split(';')[0].trim().toLowerCase();
+
+  if (normalized === 'video/mp4') {
+    return 'mp4';
+  }
+  if (normalized === 'video/quicktime') {
+    return 'mov';
+  }
+  if (normalized === 'video/x-matroska') {
+    return 'mkv';
+  }
+  if (normalized === 'video/webm') {
+    return 'webm';
+  }
+
+  return 'webm';
+}
+
+function buildVideoMimeCandidates(sourceMimeType?: string): string[] {
+  const fallback = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+  if (!sourceMimeType) {
+    return fallback;
+  }
+
+  const normalized = sourceMimeType.split(';')[0].trim().toLowerCase();
+  const preferred: string[] = [];
+
+  if (normalized === 'video/mp4') {
+    preferred.push('video/mp4;codecs=avc1.42E01E,mp4a.40.2', 'video/mp4');
+  } else if (normalized === 'video/quicktime') {
+    preferred.push('video/quicktime');
+  } else if (normalized === 'video/webm') {
+    preferred.push('video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm');
+  } else {
+    preferred.push(normalized);
+  }
+
+  return [...preferred, ...fallback];
+}
+
+function getSupportedMimeType(sourceMimeType?: string): string {
+  const candidates = buildVideoMimeCandidates(sourceMimeType);
 
   for (const candidate of candidates) {
     if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(candidate)) {
@@ -150,7 +191,24 @@ function getSupportedMimeType(): string {
     }
   }
 
-  return 'video/webm';
+  return '';
+}
+
+function getCapturedMediaStream(video: HTMLVideoElement): MediaStream | null {
+  const mediaElement = video as HTMLVideoElement & {
+    captureStream?: () => MediaStream;
+    mozCaptureStream?: () => MediaStream;
+  };
+
+  if (typeof mediaElement.captureStream === 'function') {
+    return mediaElement.captureStream();
+  }
+
+  if (typeof mediaElement.mozCaptureStream === 'function') {
+    return mediaElement.mozCaptureStream();
+  }
+
+  return null;
 }
 
 export async function renderVideoStoryFile(options: RenderStoryOptions): Promise<File> {
@@ -168,9 +226,19 @@ export async function renderVideoStoryFile(options: RenderStoryOptions): Promise
 
   const video = await loadVideo(options.sourceUrl);
 
-  const stream = canvas.captureStream(30);
-  const mimeType = getSupportedMimeType();
-  const recorder = new MediaRecorder(stream, { mimeType });
+  const canvasStream = canvas.captureStream(30);
+  const sourceStream = getCapturedMediaStream(video);
+  const combinedStream = new MediaStream();
+
+  canvasStream.getVideoTracks().forEach((track) => combinedStream.addTrack(track));
+  sourceStream?.getAudioTracks().forEach((track) => combinedStream.addTrack(track));
+
+  const mimeType = getSupportedMimeType(options.sourceFile?.type);
+  if (!mimeType) {
+    throw new Error('No supported video output format found for this browser');
+  }
+
+  const recorder = new MediaRecorder(combinedStream, { mimeType });
   const chunks: BlobPart[] = [];
 
   recorder.ondataavailable = (event) => {
@@ -217,7 +285,9 @@ export async function renderVideoStoryFile(options: RenderStoryOptions): Promise
   });
 
   recorder.stop();
+  combinedStream.getTracks().forEach((track) => track.stop());
 
   const finalBlob = await recordedBlobPromise;
-  return buildFile(finalBlob, `story-${Date.now()}.webm`, mimeType);
+  const extension = extensionFromMimeType(mimeType);
+  return buildFile(finalBlob, `story-${Date.now()}.${extension}`, mimeType);
 }

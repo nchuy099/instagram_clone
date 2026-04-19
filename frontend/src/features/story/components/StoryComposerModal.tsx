@@ -161,12 +161,14 @@ export default function StoryComposerModal({ file, onClose, onSubmit }: StoryCom
       const renderedFile = isVideo
         ? await renderVideoStoryFile({
             sourceUrl: previewUrl,
+            sourceFile: file,
             transform,
             layers,
             previewSize
           })
         : await renderImageStoryFile({
             sourceUrl: previewUrl,
+            sourceFile: file,
             transform,
             layers,
             previewSize

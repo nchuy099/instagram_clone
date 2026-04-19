@@ -1,25 +1,65 @@
 import { useState, useEffect, useCallback } from 'react';
+import type { ReactNode } from 'react';
+import { Link } from 'react-router-dom';
 import { FiMessageCircle, FiLoader, FiX } from 'react-icons/fi';
 import { commentService } from '../services/postService';
 import type { Comment } from '../types';
 import { useAuth } from '../../../hooks/useAuth';
+import { formatRelativePostTime } from '../utils/formatRelativePostTime';
 
 interface CommentItemProps {
   comment: Comment;
   onReply: (comment: Comment) => void;
+  depth?: 0 | 1;
 }
 
-function CommentItem({ comment, onReply }: CommentItemProps) {
+function renderCommentContent(content: string) {
+  const mentionPattern = /@([A-Za-z0-9_.]+)/g;
+  const nodes: ReactNode[] = [];
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = mentionPattern.exec(content)) !== null) {
+    if (match.index > lastIndex) {
+      nodes.push(content.slice(lastIndex, match.index));
+    }
+
+    const username = match[1];
+    nodes.push(
+      <Link key={`${username}-${match.index}`} to={`/${username}`} className="text-[#0095f6] hover:underline">
+        @{username}
+      </Link>
+    );
+
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < content.length) {
+    nodes.push(content.slice(lastIndex));
+  }
+
+  if (nodes.length === 0) {
+    return content;
+  }
+
+  return nodes;
+}
+
+function CommentItem({ comment, onReply, depth = 0 }: CommentItemProps) {
   const [replies, setReplies] = useState<Comment[]>([]);
   const [showReplies, setShowReplies] = useState(false);
   const [isLoadingReplies, setIsLoadingReplies] = useState(false);
 
   const fetchReplies = async () => {
+    if (depth === 1) {
+      return;
+    }
+
     if (showReplies) {
       setShowReplies(false);
       return;
     }
-    
+
     setIsLoadingReplies(true);
     try {
       const data = await commentService.getReplies(comment.id);
@@ -33,7 +73,7 @@ function CommentItem({ comment, onReply }: CommentItemProps) {
   };
 
   return (
-    <div className="flex flex-col space-y-3 mb-4 last:mb-0">
+    <div className={depth === 0 ? 'flex flex-col space-y-3 mb-4 last:mb-0' : 'flex flex-col space-y-3'}>
       <div className="flex space-x-3 group">
         <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
           {comment.user.avatarUrl && <img src={comment.user.avatarUrl} alt="avatar" className="w-full h-full object-cover" />}
@@ -41,11 +81,11 @@ function CommentItem({ comment, onReply }: CommentItemProps) {
         <div className="flex-1">
           <div className="text-sm">
             <span className="font-semibold mr-2">{comment.user.username}</span>
-            <span className="text-gray-900">{comment.content}</span>
+            <span className="text-gray-900">{renderCommentContent(comment.content)}</span>
           </div>
           <div className="flex items-center space-x-4 mt-1 text-xs text-gray-500 font-semibold">
-            <span>Now</span>
-            {comment.replyCount > 0 && (
+            <span>{formatRelativePostTime(comment.createdAt)}</span>
+            {depth === 0 && comment.replyCount > 0 && (
               <button 
                 onClick={fetchReplies}
                 className="hover:text-gray-900 transition flex items-center"
@@ -59,10 +99,10 @@ function CommentItem({ comment, onReply }: CommentItemProps) {
         </div>
       </div>
 
-      {showReplies && replies.length > 0 && (
+      {depth === 0 && showReplies && replies.length > 0 && (
         <div className="ml-11 space-y-4 border-l-2 border-gray-100 pl-4">
           {replies.map(reply => (
-            <CommentItem key={reply.id} comment={reply} onReply={onReply} />
+            <CommentItem key={reply.id} comment={reply} onReply={onReply} depth={1} />
           ))}
         </div>
       )}
@@ -94,6 +134,29 @@ export default function CommentSection({ postId }: CommentSectionProps) {
     }
   }, [postId]);
 
+  const handleReply = (comment: Comment) => {
+    const mention = `@${comment.user.username} `;
+
+    setNewComment(currentValue => {
+      if (!currentValue.trim()) {
+        return mention;
+      }
+
+      const previousMention = replyTarget ? `@${replyTarget.user.username} ` : '';
+      if (previousMention && currentValue.startsWith(previousMention)) {
+        return `${mention}${currentValue.slice(previousMention.length)}`;
+      }
+
+      if (currentValue.startsWith(mention)) {
+        return currentValue;
+      }
+
+      return `${mention}${currentValue}`;
+    });
+
+    setReplyTarget(comment);
+  };
+
   useEffect(() => {
     fetchComments();
   }, [fetchComments]);
@@ -104,7 +167,8 @@ export default function CommentSection({ postId }: CommentSectionProps) {
 
     setIsSubmitting(true);
     try {
-      const created = await commentService.createComment(postId, newComment, replyTarget?.id);
+      const parentCommentId = replyTarget?.parentCommentId ?? replyTarget?.id;
+      const created = await commentService.createComment(postId, newComment, parentCommentId ?? undefined);
       
       if (replyTarget) {
         // For simplicity, just refetch or manually update the local state if needed.
@@ -139,7 +203,7 @@ export default function CommentSection({ postId }: CommentSectionProps) {
           </div>
         ) : (
           comments.map(comment => (
-            <CommentItem key={comment.id} comment={comment} onReply={setReplyTarget} />
+            <CommentItem key={comment.id} comment={comment} onReply={handleReply} />
           ))
         )}
       </div>

@@ -15,7 +15,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
@@ -80,20 +82,30 @@ public class FollowService {
         User currentUser = getCurrentAuthenticatedUser();
         int normalizedLimit = Math.max(1, Math.min(limit, 100));
         String normalizedQuery = query == null ? "" : query.trim();
+        Pageable searchPageable = PageRequest.of(0, normalizedLimit);
 
-        return followRepository.findFollowingForMessageSearch(
+        Map<UUID, UserDTO> uniqueCandidates = new LinkedHashMap<>();
+
+        followRepository.findFollowingForMessageSearch(
                         currentUser.getId(),
                         normalizedQuery,
-                        PageRequest.of(0, normalizedLimit)
+                        searchPageable
                 )
                 .stream()
-                .map(follow -> UserDTO.builder()
-                        .id(follow.getFollowing().getId())
-                        .username(follow.getFollowing().getUsername())
-                        .fullName(follow.getFollowing().getFullName())
-                        .avatarUrl(follow.getFollowing().getAvatarUrl())
-                        .bio(follow.getFollowing().getBio())
-                        .build())
+                .map(Follow::getFollowing)
+                .forEach(user -> addCandidate(uniqueCandidates, user, currentUser.getId()));
+
+        followRepository.findFollowersForMessageSearch(
+                        currentUser.getId(),
+                        normalizedQuery,
+                        searchPageable
+                )
+                .stream()
+                .map(Follow::getFollower)
+                .forEach(user -> addCandidate(uniqueCandidates, user, currentUser.getId()));
+
+        return uniqueCandidates.values().stream()
+                .limit(normalizedLimit)
                 .toList();
     }
 
@@ -124,5 +136,19 @@ public class FollowService {
         String credential = authentication.getName();
         return userRepository.findByUsernameOrEmailOrPhoneNumber(credential, credential, credential)
                 .orElseThrow(() -> new IllegalStateException("Current user not found"));
+    }
+
+    private void addCandidate(Map<UUID, UserDTO> uniqueCandidates, User user, UUID currentUserId) {
+        if (user == null || user.getId() == null || user.getId().equals(currentUserId)) {
+            return;
+        }
+
+        uniqueCandidates.putIfAbsent(user.getId(), UserDTO.builder()
+                .id(user.getId())
+                .username(user.getUsername())
+                .fullName(user.getFullName())
+                .avatarUrl(user.getAvatarUrl())
+                .bio(user.getBio())
+                .build());
     }
 }

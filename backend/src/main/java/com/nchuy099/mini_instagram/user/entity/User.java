@@ -15,6 +15,7 @@ import java.time.ZonedDateTime;
 @AllArgsConstructor
 @SuperBuilder
 public class User extends BaseEntity {
+    private static String defaultAvatarUrl = "https://www.shutterstock.com/image-vector/default-avatar-profile-icon-social-600nw-2409187029.jpg";
 
     @Column(nullable = false, unique = true, length = 30)
     private String username;
@@ -66,4 +67,15 @@ public class User extends BaseEntity {
     @Column(name = "is_username_set", nullable = false)
     @Builder.Default
     private boolean isUsernameSet = true;
+
+    public String getAvatarUrl() {
+        return avatarUrl == null || avatarUrl.isBlank() ? defaultAvatarUrl : avatarUrl;
+    }
+
+    public static void setDefaultAvatarUrl(String defaultAvatarUrl) {
+        if (defaultAvatarUrl == null || defaultAvatarUrl.isBlank()) {
+            return;
+        }
+        User.defaultAvatarUrl = defaultAvatarUrl;
+    }
 }

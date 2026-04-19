@@ -3,6 +3,7 @@ import type { Post } from '../types';
 import MediaCarousel from './MediaCarousel';
 import CommentSection from './CommentSection';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../../hooks/useAuth';
 
 interface CommentModalProps {
   post: Post;
@@ -11,6 +12,9 @@ interface CommentModalProps {
 }
 
 export default function CommentModal({ post, isOpen, onClose }: CommentModalProps) {
+  const { user } = useAuth();
+  const isOwnPost = user?.id === post.user.id || user?.username === post.user.username;
+
   if (!isOpen) return null;
 
   return (
@@ -40,8 +44,12 @@ export default function CommentModal({ post, isOpen, onClose }: CommentModalProp
                  <Link to={`/${post.user.username}`} className="font-semibold text-sm hover:underline truncate">
                    {post.user.username}
                  </Link>
-                 <span className="text-gray-500">•</span>
-                 <button className="text-[#0095f6] font-semibold text-xs hover:text-[#00376b]">Follow</button>
+                 {isOwnPost || post.isFollowing ? null : (
+                   <>
+                     <span className="text-gray-500">•</span>
+                     <button className="text-[#0095f6] font-semibold text-xs hover:text-[#00376b]">Follow</button>
+                   </>
+                 )}
                </div>
                {post.location && <p className="text-xs text-gray-500 truncate">{post.location}</p>}
              </div>

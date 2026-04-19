@@ -46,3 +46,7 @@ aws:
     # org.hibernate.orm.jdbc.bind: TRACE
 
 frontend_url: ${FRONTEND_URL:http://localhost:5173}
+
+app:
+  user:
+    default-avatar-url: ${DEFAULT_AVATAR_URL:https://www.shutterstock.com/image-vector/default-avatar-profile-icon-social-600nw-2409187029.jpg}

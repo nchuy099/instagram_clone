@@ -46,6 +46,9 @@ public class CommentServiceImpl implements CommentService {
             if (!parentComment.getPost().getId().equals(postId)) {
                 throw new IllegalArgumentException("Parent comment must belong to the same post");
             }
+            while (parentComment.getParentComment() != null) {
+                parentComment = parentComment.getParentComment();
+            }
         }
 
         Comment comment = Comment.builder()

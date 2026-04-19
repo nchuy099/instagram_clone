@@ -37,4 +37,21 @@ public interface FollowRepository extends JpaRepository<Follow, UUID> {
     List<Follow> findFollowingForMessageSearch(@Param("followerId") UUID followerId,
                                                @Param("query") String query,
                                                Pageable pageable);
+
+    @Query("""
+            SELECT f
+            FROM Follow f
+            JOIN FETCH f.follower u
+            WHERE f.following.id = :followingId
+              AND (
+                :query IS NULL
+                OR :query = ''
+                OR LOWER(u.username) LIKE LOWER(CONCAT('%', :query, '%'))
+                OR LOWER(COALESCE(u.fullName, '')) LIKE LOWER(CONCAT('%', :query, '%'))
+              )
+            ORDER BY f.createdAt DESC
+            """)
+    List<Follow> findFollowersForMessageSearch(@Param("followingId") UUID followingId,
+                                               @Param("query") String query,
+                                               Pageable pageable);
 }

@@ -12,7 +12,7 @@ import {
   FiSearch,
   FiUser,
 } from 'react-icons/fi';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import CreatePostModal from '../../features/post/components/CreatePostModal';
 
@@ -25,13 +25,13 @@ type NavItemProps = {
 };
 
 function NavItem({ to, icon, label, collapsed, onClick }: NavItemProps) {
-  const className = `flex items-center ${collapsed ? 'justify-center' : 'space-x-4'} p-3 hover:bg-gray-100 rounded-lg transition`;
+  const className = `flex items-center ${collapsed ? 'justify-center' : 'space-x-4'} px-3.5 py-3.5 hover:bg-gray-100 rounded-xl transition`;
 
   if (to) {
     return (
       <Link to={to} className={className}>
         {icon}
-        {!collapsed ? <span className="text-[15px]">{label}</span> : null}
+        {!collapsed ? <span className="text-[17px]">{label}</span> : null}
       </Link>
     );
   }
@@ -39,13 +39,14 @@ function NavItem({ to, icon, label, collapsed, onClick }: NavItemProps) {
   return (
     <button type="button" className={`${className} w-full text-left cursor-pointer`} onClick={onClick}>
       {icon}
-      {!collapsed ? <span className="text-[15px]">{label}</span> : null}
+      {!collapsed ? <span className="text-[17px]">{label}</span> : null}
     </button>
   );
 }
 
 export default function Sidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
   const isMessagesRoute = location.pathname.startsWith('/messages');
 
   const { user, logout } = useAuth();
@@ -53,30 +54,30 @@ export default function Sidebar() {
   const [isMoreOpen, setIsMoreOpen] = useState(false);
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
 
-  const sidebarWidthClass = isMessagesRoute ? 'w-20 px-2' : 'w-64 px-3';
+  const sidebarWidthClass = isMessagesRoute ? 'w-20 px-2' : 'w-72 px-4';
 
   return (
     <>
       <div className={`fixed inset-y-0 left-0 z-10 hidden h-screen flex-col border-r border-gray-300 bg-white py-6 md:flex ${sidebarWidthClass}`}>
         <div className={`mb-8 ${isMessagesRoute ? 'px-0 flex justify-center' : 'px-4'}`}>
           {isMessagesRoute ? (
-            <FaInstagram size={28} className="cursor-pointer" />
+            <FaInstagram size={30} className="cursor-pointer" />
           ) : (
             <div className="flex items-center gap-2">
-              <FaInstagram size={28} />
-              <span className="text-2xl font-bold font-serif italic cursor-pointer">Instagram</span>
+              <FaInstagram size={32} />
+              <span className="text-[30px] font-bold font-serif italic cursor-pointer leading-none">Instagram</span>
             </div>
           )}
         </div>
 
         <nav className="flex-1 space-y-2">
-          <NavItem to="/" icon={<FiHome size={22} />} label="Home" collapsed={isMessagesRoute} />
-          <NavItem to="/search" icon={<FiSearch size={22} />} label="Search" collapsed={isMessagesRoute} />
-          <NavItem to="/explore" icon={<FiCompass size={22} />} label="Explore" collapsed={isMessagesRoute} />
-          <NavItem to="/messages" icon={<FiMessageCircle size={22} />} label="Messages" collapsed={isMessagesRoute} />
-          <NavItem icon={<FiHeart size={22} />} label="Notifications" collapsed={isMessagesRoute} />
+          <NavItem to="/" icon={<FiHome size={25} />} label="Home" collapsed={isMessagesRoute} />
+          <NavItem to="/search" icon={<FiSearch size={25} />} label="Search" collapsed={isMessagesRoute} />
+          <NavItem to="/explore" icon={<FiCompass size={25} />} label="Explore" collapsed={isMessagesRoute} />
+          <NavItem to="/messages" icon={<FiMessageCircle size={25} />} label="Messages" collapsed={isMessagesRoute} />
+          <NavItem icon={<FiHeart size={25} />} label="Notifications" collapsed={isMessagesRoute} />
           <NavItem
-            icon={<FiPlusSquare size={22} />}
+            icon={<FiPlusSquare size={25} />}
             label="Create"
             collapsed={isMessagesRoute}
             onClick={() => setIsModalOpen(true)}
@@ -84,26 +85,26 @@ export default function Sidebar() {
 
           <Link
             to="/me"
-            className={`flex items-center ${isMessagesRoute ? 'justify-center' : 'space-x-4'} p-3 hover:bg-gray-100 rounded-lg transition`}
+            className={`flex items-center ${isMessagesRoute ? 'justify-center' : 'space-x-4'} px-3.5 py-3.5 hover:bg-gray-100 rounded-xl transition`}
           >
-            <div className="w-6 h-6 rounded-full bg-gray-300 overflow-hidden">
+            <div className="h-8 w-8 rounded-full bg-gray-300 overflow-hidden">
               {user?.avatarUrl ? (
                 <img src={user.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
               ) : (
-                <FiUser size={20} className="text-gray-500" />
+                <FiUser size={24} className="text-gray-500" />
               )}
             </div>
-            {!isMessagesRoute ? <span className="text-[15px] font-semibold">Profile</span> : null}
+            {!isMessagesRoute ? <span className="text-[17px] font-semibold">Profile</span> : null}
           </Link>
         </nav>
 
         <div className="mt-auto pb-1">
           <button
             onClick={() => setIsMoreOpen((prev) => !prev)}
-            className={`flex items-center ${isMessagesRoute ? 'justify-center' : 'space-x-4'} p-3 w-full hover:bg-gray-100 rounded-lg text-left transition`}
+            className={`flex items-center ${isMessagesRoute ? 'justify-center' : 'space-x-4'} px-3.5 py-3.5 w-full hover:bg-gray-100 rounded-xl text-left transition`}
           >
-            <FiMenu size={22} />
-            {!isMessagesRoute ? <span className="text-[15px]">More</span> : null}
+            <FiMenu size={25} />
+            {!isMessagesRoute ? <span className="text-[17px]">More</span> : null}
           </button>
 
           {isMoreOpen ? (
@@ -127,7 +128,7 @@ export default function Sidebar() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSuccess={() => {
-          console.log('Post created successfully!');
+          navigate(user?.username ? `/${user.username}` : '/me');
         }}
       />
 
