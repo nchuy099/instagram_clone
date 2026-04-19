@@ -1,6 +1,8 @@
 package com.nchuy099.mini_instagram.message.entity;
 
 import com.nchuy099.mini_instagram.common.entity.BaseEntity;
+import com.nchuy099.mini_instagram.post.entity.Post;
+import com.nchuy099.mini_instagram.story.entity.Story;
 import com.nchuy099.mini_instagram.user.entity.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -33,4 +35,12 @@ public class Message extends BaseEntity {
 
     @Column(name = "content", nullable = false)
     private String content;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "shared_post_id")
+    private Post sharedPost;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "shared_story_id")
+    private Story sharedStory;
 }

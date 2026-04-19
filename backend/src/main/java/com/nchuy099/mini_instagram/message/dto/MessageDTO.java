@@ -19,5 +19,9 @@ public class MessageDTO {
     private String senderUsername;
     private String senderAvatarUrl;
     private String content;
+    private UUID sharedPostId;
+    private SharedPostPreviewDTO sharedPost;
+    private UUID sharedStoryId;
+    private SharedStoryPreviewDTO sharedStory;
     private ZonedDateTime createdAt;
 }

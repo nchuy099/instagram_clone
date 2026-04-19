@@ -17,8 +17,18 @@ export const messageService = {
     return response.data.data;
   },
 
-  sendMessage: async (conversationId: string, content: string): Promise<Message> => {
-    const response = await api.post(`/conversations/${conversationId}/messages`, { content });
+  sendMessage: async (
+    conversationId: string,
+    payload: string | { content?: string; sharedPostId?: string }
+  ): Promise<Message> => {
+    const requestBody =
+      typeof payload === 'string'
+        ? { content: payload }
+        : {
+            content: payload.content ?? '',
+            sharedPostId: payload.sharedPostId,
+          };
+    const response = await api.post(`/conversations/${conversationId}/messages`, requestBody);
     return response.data.data;
   },
 

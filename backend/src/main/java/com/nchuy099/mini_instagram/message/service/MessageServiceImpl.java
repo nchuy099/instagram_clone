@@ -4,12 +4,19 @@ import com.nchuy099.mini_instagram.message.dto.ConversationItemDTO;
 import com.nchuy099.mini_instagram.message.dto.ConversationParticipantDTO;
 import com.nchuy099.mini_instagram.message.dto.MessageDTO;
 import com.nchuy099.mini_instagram.message.dto.MessageEventDTO;
+import com.nchuy099.mini_instagram.message.dto.SharedPostPreviewDTO;
+import com.nchuy099.mini_instagram.message.dto.SharedStoryPreviewDTO;
 import com.nchuy099.mini_instagram.message.entity.Conversation;
 import com.nchuy099.mini_instagram.message.entity.ConversationParticipant;
 import com.nchuy099.mini_instagram.message.entity.Message;
 import com.nchuy099.mini_instagram.message.repository.ConversationParticipantRepository;
 import com.nchuy099.mini_instagram.message.repository.ConversationRepository;
 import com.nchuy099.mini_instagram.message.repository.MessageRepository;
+import com.nchuy099.mini_instagram.post.entity.Post;
+import com.nchuy099.mini_instagram.post.entity.PostMedia;
+import com.nchuy099.mini_instagram.post.repository.PostRepository;
+import com.nchuy099.mini_instagram.story.entity.Story;
+import com.nchuy099.mini_instagram.story.repository.StoryRepository;
 import com.nchuy099.mini_instagram.user.entity.User;
 import com.nchuy099.mini_instagram.user.repository.UserRepository;
 import com.nchuy099.mini_instagram.user.service.UserService;
@@ -23,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -34,6 +42,8 @@ public class MessageServiceImpl implements MessageService {
     private final ConversationRepository conversationRepository;
     private final ConversationParticipantRepository conversationParticipantRepository;
     private final MessageRepository messageRepository;
+    private final PostRepository postRepository;
+    private final StoryRepository storyRepository;
     private final UserRepository userRepository;
     private final UserService userService;
     private final SimpMessagingTemplate messagingTemplate;
@@ -81,38 +91,62 @@ public class MessageServiceImpl implements MessageService {
 
     @Override
     @Transactional
-    public MessageDTO sendMessage(UUID conversationId, String content) {
+    public MessageDTO sendMessage(UUID conversationId, String content, UUID sharedPostId) {
         User currentUser = getCurrentUser();
         Conversation conversation = getAccessibleConversation(conversationId, currentUser);
+        List<ConversationParticipant> participants = conversationParticipantRepository.findByConversation(conversation);
+
+        boolean hasOtherParticipant = participants.stream()
+                .anyMatch(participant -> participant.getUser().getId().equals(currentUser.getId()) == false);
+        if (!hasOtherParticipant) {
+            throw new IllegalArgumentException("Cannot send message to yourself");
+        }
+
+        String trimmedContent = content == null ? "" : content.trim();
+        Post sharedPost = null;
+        if (sharedPostId != null) {
+            sharedPost = postRepository.findById(sharedPostId)
+                    .orElseThrow(() -> new IllegalArgumentException("Shared post not found"));
+        }
+
+        if (trimmedContent.isEmpty() && sharedPost == null) {
+            throw new IllegalArgumentException("Message content or shared post is required");
+        }
+
+        return persistAndPublishMessage(conversation, participants, currentUser, trimmedContent, sharedPost, null);
+    }
+
+    @Override
+    @Transactional
+    public MessageDTO sendStoryReplyMessage(UUID recipientUserId, UUID storyId, String content) {
+        User currentUser = getCurrentUser();
+        User recipient = userRepository.findById(recipientUserId)
+                .orElseThrow(() -> new IllegalArgumentException("Recipient not found"));
+
+        if (recipient.getId().equals(currentUser.getId())) {
+            throw new IllegalArgumentException("Cannot send message to yourself");
+        }
 
         String trimmedContent = content == null ? "" : content.trim();
         if (trimmedContent.isEmpty()) {
-            throw new IllegalArgumentException("Message content is required");
+            throw new IllegalArgumentException("Reply content is required");
         }
 
-        Message savedMessage = messageRepository.save(Message.builder()
-                .conversation(conversation)
-                .user(currentUser)
-                .content(trimmedContent)
-                .build());
+        Story sharedStory = storyRepository.findById(storyId)
+                .orElseThrow(() -> new IllegalArgumentException("Shared story not found"));
 
-        conversationRepository.save(conversation);
+        Conversation conversation = conversationRepository.findDirectConversationId(currentUser.getId(), recipient.getId())
+                .flatMap(conversationRepository::findById)
+                .orElseGet(() -> createDirectConversation(currentUser, recipient));
+        List<ConversationParticipant> participants = conversationParticipantRepository.findByConversation(conversation);
 
-        conversationParticipantRepository.findByConversationAndUser(conversation, currentUser)
-                .ifPresent(participant -> {
-                    participant.setLastReadAt(LocalDateTime.now());
-                    conversationParticipantRepository.save(participant);
-                });
+        boolean hasOtherParticipant = participants.stream()
+                .anyMatch(participant -> participant.getUser().getId().equals(currentUser.getId()) == false);
+        if (!hasOtherParticipant) {
+            throw new IllegalArgumentException("Cannot send message to yourself");
+        }
 
-        MessageDTO messageDTO = mapMessage(savedMessage);
-        MessageEventDTO event = MessageEventDTO.builder()
-                .type("MESSAGE_CREATED")
-                .conversationId(conversation.getId())
-                .message(messageDTO)
-                .build();
-
-        publishConversationEvent(conversation, event);
-        return messageDTO;
+        return persistAndPublishMessage(conversation, participants, currentUser, trimmedContent, null, sharedStory);
     }
 
     @Override
@@ -192,7 +226,7 @@ public class MessageServiceImpl implements MessageService {
         return ConversationItemDTO.builder()
                 .id(conversation.getId())
                 .participants(participantDTOs)
-                .lastMessagePreview(lastMessage == null ? null : lastMessage.getContent())
+                .lastMessagePreview(resolveLastMessagePreview(lastMessage))
                 .lastMessageAt(lastMessage == null ? null : toZonedDateTime(lastMessage.getCreatedAt()))
                 .unreadCount(unreadCount)
                 .build();
@@ -206,12 +240,113 @@ public class MessageServiceImpl implements MessageService {
                 .senderUsername(message.getUser().getUsername())
                 .senderAvatarUrl(message.getUser().getAvatarUrl())
                 .content(message.getContent())
+                .sharedPostId(message.getSharedPost() == null ? null : message.getSharedPost().getId())
+                .sharedPost(mapSharedPostPreview(message.getSharedPost()))
+                .sharedStoryId(message.getSharedStory() == null ? null : message.getSharedStory().getId())
+                .sharedStory(mapSharedStoryPreview(message.getSharedStory()))
                 .createdAt(toZonedDateTime(message.getCreatedAt()))
                 .build();
     }
 
+    private String resolveLastMessagePreview(Message lastMessage) {
+        if (lastMessage == null) {
+            return null;
+        }
+        if (lastMessage.getContent() != null && !lastMessage.getContent().isBlank()) {
+            return lastMessage.getContent();
+        }
+        if (lastMessage.getSharedPost() != null) {
+            return "Shared a post";
+        }
+        if (lastMessage.getSharedStory() != null) {
+            if (lastMessage.getSharedStory().getExpiresAt() != null
+                    && lastMessage.getSharedStory().getExpiresAt().isBefore(ZonedDateTime.now())) {
+                return "Story expired";
+            }
+            return "Replied to your story";
+        }
+        return lastMessage.getContent();
+    }
+
+    private SharedPostPreviewDTO mapSharedPostPreview(Post sharedPost) {
+        if (sharedPost == null) {
+            return null;
+        }
+
+        PostMedia previewMedia = sharedPost.getMedia().stream()
+                .min(Comparator.comparing(PostMedia::getOrderIndex, Comparator.nullsLast(Integer::compareTo)))
+                .orElse(null);
+
+        return SharedPostPreviewDTO.builder()
+                .postId(sharedPost.getId())
+                .ownerUsername(sharedPost.getUser().getUsername())
+                .ownerAvatarUrl(sharedPost.getUser().getAvatarUrl())
+                .mediaUrl(resolvePreviewMediaUrl(previewMedia))
+                .mediaType(previewMedia == null ? null : previewMedia.getType().name())
+                .caption(sharedPost.getCaption())
+                .build();
+    }
+
+    private SharedStoryPreviewDTO mapSharedStoryPreview(Story sharedStory) {
+        if (sharedStory == null) {
+            return null;
+        }
+
+        return SharedStoryPreviewDTO.builder()
+                .storyId(sharedStory.getId())
+                .ownerUsername(sharedStory.getUser().getUsername())
+                .ownerAvatarUrl(sharedStory.getUser().getAvatarUrl())
+                .mediaUrl(sharedStory.getMediaUrl())
+                .mediaType(sharedStory.getMediaType())
+                .expiresAt(sharedStory.getExpiresAt())
+                .expired(sharedStory.getExpiresAt() != null && sharedStory.getExpiresAt().isBefore(ZonedDateTime.now()))
+                .build();
+    }
+
+    private String resolvePreviewMediaUrl(PostMedia previewMedia) {
+        if (previewMedia == null) {
+            return null;
+        }
+        return previewMedia.getUrl();
+    }
+
     private ZonedDateTime toZonedDateTime(LocalDateTime value) {
         return value == null ? null : value.atZone(ZoneId.systemDefault());
+    }
+
+    private MessageDTO persistAndPublishMessage(
+            Conversation conversation,
+            List<ConversationParticipant> participants,
+            User sender,
+            String content,
+            Post sharedPost,
+            Story sharedStory
+    ) {
+        Message savedMessage = messageRepository.save(Message.builder()
+                .conversation(conversation)
+                .user(sender)
+                .content(content)
+                .sharedPost(sharedPost)
+                .sharedStory(sharedStory)
+                .build());
+
+        conversationRepository.save(conversation);
+
+        conversationParticipantRepository.findByConversationAndUser(conversation, sender)
+                .ifPresent(participant -> {
+                    participant.setLastReadAt(LocalDateTime.now());
+                    conversationParticipantRepository.save(participant);
+                });
+
+        MessageDTO messageDTO = mapMessage(savedMessage);
+        MessageEventDTO event = MessageEventDTO.builder()
+                .type("MESSAGE_CREATED")
+                .conversationId(conversation.getId())
+                .message(messageDTO)
+                .build();
+
+        publishConversationEvent(participants, conversation, event);
+        return messageDTO;
     }
 
     private void publishConversationEvent(Conversation conversation, MessageEventDTO event) {
@@ -219,6 +354,16 @@ public class MessageServiceImpl implements MessageService {
         messagingTemplate.convertAndSend(topicDestination, event);
 
         List<ConversationParticipant> participants = conversationParticipantRepository.findByConversation(conversation);
+        for (ConversationParticipant participant : participants) {
+            String principal = resolvePrincipal(participant.getUser());
+            messagingTemplate.convertAndSendToUser(principal, "/queue/messages", event);
+        }
+    }
+
+    private void publishConversationEvent(List<ConversationParticipant> participants, Conversation conversation, MessageEventDTO event) {
+        String topicDestination = "/topic/conversations/" + conversation.getId();
+        messagingTemplate.convertAndSend(topicDestination, event);
+
         for (ConversationParticipant participant : participants) {
             String principal = resolvePrincipal(participant.getUser());
             messagingTemplate.convertAndSendToUser(principal, "/queue/messages", event);

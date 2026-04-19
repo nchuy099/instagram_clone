@@ -5,12 +5,15 @@ import {
   FiMessageCircle,
   FiSend,
 } from 'react-icons/fi';
+import { BsBookmarkFill } from 'react-icons/bs';
 import type { Post } from '../types';
 import MediaCarousel from './MediaCarousel';
 import { useState } from 'react';
 import { postService } from '../services/postService';
 import { Link } from 'react-router-dom';
 import CommentModal from './CommentModal';
+import { formatRelativePostTime } from '../utils/formatRelativePostTime';
+import PostShareModal from './PostShareModal';
 
 interface PostCardProps {
   post: Post;
@@ -20,6 +23,7 @@ export default function PostCard({ post: initialPost }: PostCardProps) {
   const [post, setPost] = useState(initialPost);
   const [isLiking, setIsLiking] = useState(false);
   const [isCommentModalOpen, setIsCommentModalOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   const handleToggleLike = async () => {
     if (isLiking) return;
@@ -66,7 +70,7 @@ export default function PostCard({ post: initialPost }: PostCardProps) {
 
   return (
     <>
-      <article className="bg-white border border-gray-200 rounded-lg overflow-hidden max-w-[470px] mx-auto mb-4 scale-in duration-300">
+      <article className="bg-white border border-gray-200 rounded-lg overflow-hidden max-w-[620px] mx-auto mb-4 scale-in duration-300">
         {/* Header */}
         <div className="flex items-center justify-between p-3">
           <div className="flex items-center space-x-3">
@@ -81,7 +85,7 @@ export default function PostCard({ post: initialPost }: PostCardProps) {
               {post.user.username}
             </Link>
             <span className="text-gray-500 text-sm">•</span>
-            <span className="text-gray-500 text-sm">Now</span>
+            <span className="text-gray-500 text-sm">{formatRelativePostTime(post.createdAt)}</span>
           </div>
           <button className="text-gray-900 border-none bg-none p-1 hover:text-gray-500 transition">
             <FiMoreHorizontal size={20} />
@@ -95,19 +99,25 @@ export default function PostCard({ post: initialPost }: PostCardProps) {
         <div className="p-3">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center space-x-4">
-              <button 
+              <button
                 onClick={handleToggleLike}
-                className={`hover:opacity-60 transition ${post.isLiked ? 'text-red-500 animate-in bounce-in' : 'text-gray-900'}`}
+                className={`hover:opacity-60 transition flex items-center gap-1.5 ${post.isLiked ? 'text-red-500 animate-in bounce-in' : 'text-gray-900'}`}
               >
                 <FiHeart size={24} />
+                <span className="text-sm font-semibold text-gray-900">{post.likeCount.toLocaleString()}</span>
               </button>
-              <button 
+              <button
                 onClick={() => setIsCommentModalOpen(true)}
-                className="hover:opacity-60 transition text-gray-900"
+                className="hover:opacity-60 transition text-gray-900 flex items-center gap-1.5"
               >
                 <FiMessageCircle size={24} />
+                <span className="text-sm font-semibold">{post.commentCount.toLocaleString()}</span>
               </button>
-              <button className="hover:opacity-60 transition text-gray-900">
+              <button
+                onClick={() => setIsShareModalOpen(true)}
+                className="hover:opacity-60 transition text-gray-900"
+                aria-label="Share post"
+              >
                 <FiSend size={24} />
               </button>
             </div>
@@ -115,13 +125,8 @@ export default function PostCard({ post: initialPost }: PostCardProps) {
               onClick={handleToggleSave}
               className={`hover:opacity-60 transition ${post.isSaved ? 'text-black' : 'text-gray-900'}`}
             >
-              <FiBookmark size={24} />
+              {post.isSaved ? <BsBookmarkFill size={22} /> : <FiBookmark size={24} />}
             </button>
-          </div>
-
-          {/* Likes */}
-          <div className="text-sm font-semibold mb-2">
-            {post.likeCount.toLocaleString()} likes
           </div>
 
           {/* Caption */}
@@ -157,6 +162,12 @@ export default function PostCard({ post: initialPost }: PostCardProps) {
         post={post} 
         isOpen={isCommentModalOpen} 
         onClose={() => setIsCommentModalOpen(false)} 
+      />
+
+      <PostShareModal
+        post={post}
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
       />
     </>
   );

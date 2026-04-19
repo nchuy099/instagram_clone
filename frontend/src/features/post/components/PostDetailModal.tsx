@@ -8,11 +8,13 @@ import {
   FiLoader,
   FiX,
 } from 'react-icons/fi';
+import { BsBookmarkFill } from 'react-icons/bs';
 import { postService } from '../services/postService';
 import type { Post } from '../types';
 import MediaCarousel from './MediaCarousel';
 import CommentSection from './CommentSection';
-import { formatDistanceToNow } from 'date-fns';
+import { formatRelativePostTime } from '../utils/formatRelativePostTime';
+import PostShareModal from './PostShareModal';
 
 interface PostDetailModalProps {
   postId: string;
@@ -25,6 +27,7 @@ export default function PostDetailModal({ postId, onClose }: PostDetailModalProp
   const [isLiked, setIsLiked] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
 
   useEffect(() => {
     const fetchPost = async () => {
@@ -132,7 +135,7 @@ export default function PostDetailModal({ postId, onClose }: PostDetailModalProp
                 <span className="font-semibold mr-2">{post.user.username}</span>
                 <span>{post.caption}</span>
                 <div className="text-gray-500 text-xs mt-2 uppercase">
-                  {formatDistanceToNow(new Date(post.createdAt))} ago
+                  {formatRelativePostTime(post.createdAt)}
                 </div>
               </div>
             </div>
@@ -154,7 +157,11 @@ export default function PostDetailModal({ postId, onClose }: PostDetailModalProp
                 <button className="text-gray-900 hover:opacity-50 transition">
                   <FiMessageCircle size={24} />
                 </button>
-                <button className="text-gray-900 hover:opacity-50 transition">
+                <button
+                  onClick={() => setIsShareModalOpen(true)}
+                  className="text-gray-900 hover:opacity-50 transition"
+                  aria-label="Share post"
+                >
                   <FiSend size={24} />
                 </button>
               </div>
@@ -162,19 +169,25 @@ export default function PostDetailModal({ postId, onClose }: PostDetailModalProp
                 onClick={handleSave}
                 className={`transition hover:opacity-50 ${isSaved ? 'text-gray-900' : 'text-gray-900'}`}
               >
-                <FiBookmark size={24} />
+                {isSaved ? <BsBookmarkFill size={22} /> : <FiBookmark size={24} />}
               </button>
             </div>
             
             <div>
               <p className="text-sm font-semibold">{likeCount.toLocaleString()} likes</p>
               <p className="text-gray-500 text-[10px] uppercase mt-1">
-                {formatDistanceToNow(new Date(post.createdAt))} ago
+                {formatRelativePostTime(post.createdAt)}
               </p>
             </div>
           </div>
         </div>
       </div>
+
+      <PostShareModal
+        post={post}
+        isOpen={isShareModalOpen}
+        onClose={() => setIsShareModalOpen(false)}
+      />
     </div>
   );
 }

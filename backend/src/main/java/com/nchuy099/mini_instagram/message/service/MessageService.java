@@ -10,6 +10,7 @@ public interface MessageService {
     List<ConversationItemDTO> getConversations();
     ConversationItemDTO createOrGetConversation(UUID participantId);
     List<MessageDTO> getMessages(UUID conversationId);
-    MessageDTO sendMessage(UUID conversationId, String content);
+    MessageDTO sendMessage(UUID conversationId, String content, UUID sharedPostId);
+    MessageDTO sendStoryReplyMessage(UUID recipientUserId, UUID storyId, String content);
     void markConversationRead(UUID conversationId);
 }

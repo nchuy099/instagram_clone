@@ -43,7 +43,9 @@ public class MessageController {
             @PathVariable UUID conversationId,
             @Valid @RequestBody MessageRequests.SendMessageRequest request
     ) {
-        return ResponseEntity.ok(ApiResponse.success(messageService.sendMessage(conversationId, request.getContent())));
+        return ResponseEntity.ok(ApiResponse.success(
+                messageService.sendMessage(conversationId, request.getContent(), request.getSharedPostId())
+        ));
     }
 
     @PostMapping("/{conversationId}/read")

@@ -27,6 +27,7 @@ export interface Post {
   commentCount: number;
   isLiked: boolean;
   isSaved: boolean;
+  isFollowing: boolean;
   allowComments: boolean;
   createdAt: string;
 }
@@ -51,6 +52,7 @@ export interface Comment {
     username: string;
     avatarUrl?: string;
   };
+  parentCommentId?: string | null;
   createdAt: string;
   replyCount: number;
 }

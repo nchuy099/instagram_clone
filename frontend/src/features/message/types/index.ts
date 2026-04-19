@@ -19,7 +19,30 @@ export interface Message {
   senderUsername: string;
   senderAvatarUrl?: string;
   content: string;
+  sharedPostId?: string;
+  sharedPost?: SharedPostPreview;
+  sharedStoryId?: string;
+  sharedStory?: SharedStoryPreview;
   createdAt: string;
+}
+
+export interface SharedPostPreview {
+  postId: string;
+  ownerUsername: string;
+  ownerAvatarUrl?: string;
+  mediaUrl?: string;
+  mediaType?: 'IMAGE' | 'VIDEO' | string;
+  caption: string;
+}
+
+export interface SharedStoryPreview {
+  storyId: string;
+  ownerUsername: string;
+  ownerAvatarUrl?: string;
+  mediaUrl?: string;
+  mediaType?: 'IMAGE' | 'VIDEO' | string;
+  expiresAt?: string;
+  expired?: boolean;
 }
 
 export interface MessageEvent {
