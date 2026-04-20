@@ -14,6 +14,7 @@ import HomePage from './pages/HomePage';
 import ExplorePage from './pages/ExplorePage';
 import SearchPage from './pages/SearchPage';
 import MessagesPage from './pages/MessagesPage';
+import NotificationsPage from './pages/NotificationsPage';
 
 const ProtectedRoute = ({ children }: { children: ReactNode }) => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -46,6 +47,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <MessagesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/notifications"
+            element={
+              <ProtectedRoute>
+                <NotificationsPage />
               </ProtectedRoute>
             }
           />

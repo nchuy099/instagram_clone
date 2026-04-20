@@ -75,7 +75,7 @@ export default function Sidebar() {
           <NavItem to="/search" icon={<FiSearch size={25} />} label="Search" collapsed={isMessagesRoute} />
           <NavItem to="/explore" icon={<FiCompass size={25} />} label="Explore" collapsed={isMessagesRoute} />
           <NavItem to="/messages" icon={<FiMessageCircle size={25} />} label="Messages" collapsed={isMessagesRoute} />
-          <NavItem icon={<FiHeart size={25} />} label="Notifications" collapsed={isMessagesRoute} />
+          <NavItem to="/notifications" icon={<FiHeart size={25} />} label="Notifications" collapsed={isMessagesRoute} />
           <NavItem
             icon={<FiPlusSquare size={25} />}
             label="Create"

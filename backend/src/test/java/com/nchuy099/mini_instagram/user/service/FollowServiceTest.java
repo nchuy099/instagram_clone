@@ -1,15 +1,17 @@
 package com.nchuy099.mini_instagram.user.service;
 
 import com.nchuy099.mini_instagram.common.response.PagedResponse;
+import com.nchuy099.mini_instagram.notification.event.UserFollowedEvent;
 import com.nchuy099.mini_instagram.user.dto.UserDTO;
 import com.nchuy099.mini_instagram.user.entity.Follow;
 import com.nchuy099.mini_instagram.user.entity.User;
 import com.nchuy099.mini_instagram.user.repository.FollowRepository;
 import com.nchuy099.mini_instagram.user.repository.UserRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -38,6 +40,8 @@ class FollowServiceTest {
 
     @Mock
     private FollowRepository followRepository;
+    @Mock
+    private ApplicationEventPublisher applicationEventPublisher;
 
     @InjectMocks
     private FollowService followService;
@@ -70,6 +74,11 @@ class FollowServiceTest {
         verify(followRepository).save(any(Follow.class));
         assertThat(currentUser.getFollowingCount()).isEqualTo(1);
         assertThat(targetUser.getFollowerCount()).isEqualTo(1);
+        ArgumentCaptor<UserFollowedEvent> eventCaptor = ArgumentCaptor.forClass(UserFollowedEvent.class);
+        verify(applicationEventPublisher).publishEvent(eventCaptor.capture());
+        assertThat(eventCaptor.getValue().getActorId()).isEqualTo(currentUserId);
+        assertThat(eventCaptor.getValue().getRecipientId()).isEqualTo(targetUserId);
+        assertThat(eventCaptor.getValue().getRecipientPrincipal()).isEqualTo("target");
     }
 
     @Test
@@ -91,6 +100,26 @@ class FollowServiceTest {
         verify(followRepository).save(any(Follow.class));
         assertThat(currentUser.getFollowingCount()).isEqualTo(1);
         assertThat(targetUser.getFollowerCount()).isEqualTo(1);
+        verify(applicationEventPublisher).publishEvent(any(UserFollowedEvent.class));
+    }
+
+    @Test
+    void followUser_WhenAlreadyFollowing_ShouldNotPublishEvent() {
+        UUID currentUserId = UUID.randomUUID();
+        User currentUser = User.builder().id(currentUserId).username("me").followingCount(1).build();
+        authenticateUser("me");
+
+        UUID targetUserId = UUID.randomUUID();
+        User targetUser = User.builder().id(targetUserId).username("target").followerCount(1).build();
+
+        when(userRepository.findByUsernameOrEmailOrPhoneNumber("me", "me", "me")).thenReturn(Optional.of(currentUser));
+        when(userRepository.findById(targetUserId)).thenReturn(Optional.of(targetUser));
+        when(followRepository.existsByFollowerIdAndFollowingId(currentUserId, targetUserId)).thenReturn(true);
+
+        followService.followUser(targetUserId);
+
+        verify(followRepository, never()).save(any(Follow.class));
+        verify(applicationEventPublisher, never()).publishEvent(any(UserFollowedEvent.class));
     }
 
     @Test

@@ -1,12 +1,15 @@
 package com.nchuy099.mini_instagram.user.service;
 
 import com.nchuy099.mini_instagram.common.response.PagedResponse;
+import com.nchuy099.mini_instagram.notification.event.UserFollowedEvent;
 import com.nchuy099.mini_instagram.user.dto.UserDTO;
 import com.nchuy099.mini_instagram.user.entity.Follow;
 import com.nchuy099.mini_instagram.user.entity.User;
 import com.nchuy099.mini_instagram.user.repository.FollowRepository;
 import com.nchuy099.mini_instagram.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -22,10 +25,12 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class FollowService {
 
     private final UserRepository userRepository;
     private final FollowRepository followRepository;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     @Transactional
     public void followUser(UUID targetUserId) {
@@ -48,6 +53,19 @@ public class FollowService {
             targetUser.setFollowerCount(targetUser.getFollowerCount() + 1);
             userRepository.save(currentUser);
             userRepository.save(targetUser);
+
+            log.info(
+                    "notification_event_publish type=FOLLOW actorId={} recipientId={}",
+                    currentUser.getId(),
+                    targetUser.getId()
+            );
+            applicationEventPublisher.publishEvent(new UserFollowedEvent(
+                    currentUser.getId(),
+                    currentUser.getUsername(),
+                    currentUser.getAvatarUrl(),
+                    targetUser.getId(),
+                    resolvePrincipal(targetUser)
+            ));
         }
     }
 
@@ -150,5 +168,9 @@ public class FollowService {
                 .avatarUrl(user.getAvatarUrl())
                 .bio(user.getBio())
                 .build());
+    }
+
+    private String resolvePrincipal(User user) {
+        return user.getEmail() == null ? user.getUsername() : user.getEmail();
     }
 }

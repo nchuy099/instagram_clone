@@ -1,5 +1,6 @@
 package com.nchuy099.mini_instagram.post.service;
 
+import com.nchuy099.mini_instagram.notification.event.PostLikedEvent;
 import com.nchuy099.mini_instagram.post.dto.CreatePostRequest;
 import com.nchuy099.mini_instagram.post.dto.PostDTO;
 import com.nchuy099.mini_instagram.post.dto.UpdatePostRequest;
@@ -14,11 +15,14 @@ import com.nchuy099.mini_instagram.post.repository.PostRepository;
 import com.nchuy099.mini_instagram.post.repository.PostSaveRepository;
 import com.nchuy099.mini_instagram.post.repository.PostHashtagRepository;
 import com.nchuy099.mini_instagram.post.repository.HashtagRepository;
+import com.nchuy099.mini_instagram.user.repository.FollowRepository;
 import com.nchuy099.mini_instagram.user.entity.User;
 import com.nchuy099.mini_instagram.user.repository.UserRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -51,6 +55,10 @@ class PostServiceTest {
     private HashtagRepository hashtagRepository;
     @Mock
     private UserRepository userRepository;
+    @Mock
+    private FollowRepository followRepository;
+    @Mock
+    private ApplicationEventPublisher applicationEventPublisher;
 
     @InjectMocks
     private PostServiceImpl postService;
@@ -180,8 +188,13 @@ class PostServiceTest {
     void likePost_WhenNotLiked_ShouldCreateLike() {
         UUID postId = UUID.randomUUID();
         User user = User.builder().id(UUID.randomUUID()).username("me").build();
+        User postOwner = User.builder()
+                .id(UUID.randomUUID())
+                .username("owner")
+                .email("owner@example.com")
+                .build();
         authenticateUser("me");
-        Post post = Post.builder().id(postId).likeCount(0).build();
+        Post post = Post.builder().id(postId).user(postOwner).likeCount(0).build();
 
         when(userRepository.findByUsernameOrEmailOrPhoneNumber("me", "me", "me")).thenReturn(Optional.of(user));
         when(postRepository.findById(postId)).thenReturn(Optional.of(post));
@@ -191,6 +204,30 @@ class PostServiceTest {
 
         verify(postLikeRepository).save(any(PostLike.class));
         assertThat(post.getLikeCount()).isEqualTo(1);
+        ArgumentCaptor<PostLikedEvent> eventCaptor = ArgumentCaptor.forClass(PostLikedEvent.class);
+        verify(applicationEventPublisher).publishEvent(eventCaptor.capture());
+        assertThat(eventCaptor.getValue().getActorId()).isEqualTo(user.getId());
+        assertThat(eventCaptor.getValue().getRecipientId()).isEqualTo(postOwner.getId());
+        assertThat(eventCaptor.getValue().getRecipientPrincipal()).isEqualTo("owner@example.com");
+        assertThat(eventCaptor.getValue().getPostId()).isEqualTo(postId);
+    }
+
+    @Test
+    void likePost_WhenAlreadyLiked_ShouldNotPublishEvent() {
+        UUID postId = UUID.randomUUID();
+        User user = User.builder().id(UUID.randomUUID()).username("me").build();
+        User postOwner = User.builder().id(UUID.randomUUID()).username("owner").build();
+        authenticateUser("me");
+        Post post = Post.builder().id(postId).user(postOwner).likeCount(3).build();
+
+        when(userRepository.findByUsernameOrEmailOrPhoneNumber("me", "me", "me")).thenReturn(Optional.of(user));
+        when(postRepository.findById(postId)).thenReturn(Optional.of(post));
+        when(postLikeRepository.existsByPostAndUser(post, user)).thenReturn(true);
+
+        postService.likePost(postId);
+
+        verify(postLikeRepository, never()).save(any(PostLike.class));
+        verify(applicationEventPublisher, never()).publishEvent(any());
     }
 
     @Test

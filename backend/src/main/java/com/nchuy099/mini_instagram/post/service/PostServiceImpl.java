@@ -1,5 +1,6 @@
 package com.nchuy099.mini_instagram.post.service;
 
+import com.nchuy099.mini_instagram.notification.event.PostLikedEvent;
 import com.nchuy099.mini_instagram.post.dto.CreatePostRequest;
 import com.nchuy099.mini_instagram.post.dto.PostDTO;
 import com.nchuy099.mini_instagram.post.dto.PostMediaDTO;
@@ -21,6 +22,8 @@ import com.nchuy099.mini_instagram.user.dto.UserDTO;
 import com.nchuy099.mini_instagram.user.entity.User;
 import com.nchuy099.mini_instagram.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -41,6 +44,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PostServiceImpl implements PostService {
 
     private static final Pattern HASHTAG_PATTERN = Pattern.compile("#([A-Za-z0-9_]{1,100})");
@@ -53,6 +57,7 @@ public class PostServiceImpl implements PostService {
     private final PostHashtagRepository postHashtagRepository;
     private final UserRepository userRepository;
     private final FollowRepository followRepository;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     @Override
     @Transactional
@@ -151,6 +156,24 @@ public class PostServiceImpl implements PostService {
 
             post.setLikeCount(post.getLikeCount() + 1);
             postRepository.save(post);
+
+            User recipient = post.getUser();
+            if (recipient != null && recipient.getId() != null) {
+                log.info(
+                        "notification_event_publish type=POST_LIKE actorId={} recipientId={} postId={}",
+                        currentUser.getId(),
+                        recipient.getId(),
+                        post.getId()
+                );
+                applicationEventPublisher.publishEvent(new PostLikedEvent(
+                        currentUser.getId(),
+                        currentUser.getUsername(),
+                        currentUser.getAvatarUrl(),
+                        recipient.getId(),
+                        resolvePrincipal(recipient),
+                        post.getId()
+                ));
+            }
         }
     }
 
@@ -352,5 +375,9 @@ public class PostServiceImpl implements PostService {
             tags.add(matcher.group(1).toLowerCase(Locale.ROOT));
         }
         return tags;
+    }
+
+    private String resolvePrincipal(User user) {
+        return user.getEmail() == null ? user.getUsername() : user.getEmail();
     }
 }

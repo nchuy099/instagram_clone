@@ -354,6 +354,12 @@ export default function MessagesPage() {
         Authorization: `Bearer ${token}`,
       },
       reconnectDelay: 3000,
+      onStompError: (frame) => {
+        console.error('Messages STOMP error', frame.headers['message'], frame.body);
+      },
+      onWebSocketError: (event) => {
+        console.error('Messages websocket error', event);
+      },
       onConnect: () => {
         client.subscribe('/user/queue/messages', (frame) => {
           const event = JSON.parse(frame.body) as MessageEvent;

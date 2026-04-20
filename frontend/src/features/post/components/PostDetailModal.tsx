@@ -18,10 +18,11 @@ import PostShareModal from './PostShareModal';
 
 interface PostDetailModalProps {
   postId: string;
+  highlightCommentId?: string | null;
   onClose: () => void;
 }
 
-export default function PostDetailModal({ postId, onClose }: PostDetailModalProps) {
+export default function PostDetailModal({ postId, highlightCommentId = null, onClose }: PostDetailModalProps) {
   const [post, setPost] = useState<Post | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLiked, setIsLiked] = useState(false);
@@ -141,7 +142,7 @@ export default function PostDetailModal({ postId, onClose }: PostDetailModalProp
             </div>
 
             {/* Comments Component */}
-            <CommentSection postId={postId} />
+            <CommentSection postId={postId} highlightCommentId={highlightCommentId} />
           </div>
 
           {/* Social Actions */}

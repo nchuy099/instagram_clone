@@ -9,6 +9,8 @@ import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBr
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 
+import java.util.Arrays;
+
 @Configuration
 @EnableWebSocketMessageBroker
 @RequiredArgsConstructor
@@ -21,8 +23,13 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
+        String[] configuredOrigins = Arrays.stream(frontendUrl.split(","))
+                .map(String::trim)
+                .filter(origin -> !origin.isEmpty())
+                .toArray(String[]::new);
+
         registry.addEndpoint("/ws")
-                .setAllowedOrigins(frontendUrl);
+                .setAllowedOriginPatterns(mergeOrigins(configuredOrigins));
     }
 
     @Override
@@ -35,5 +42,19 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
         registration.interceptors(webSocketAuthChannelInterceptor);
+    }
+
+    private String[] mergeOrigins(String[] configuredOrigins) {
+        String[] devOrigins = new String[]{
+                "http://localhost:*",
+                "http://127.0.0.1:*",
+                "https://localhost:*",
+                "https://127.0.0.1:*"
+        };
+
+        String[] merged = new String[configuredOrigins.length + devOrigins.length];
+        System.arraycopy(configuredOrigins, 0, merged, 0, configuredOrigins.length);
+        System.arraycopy(devOrigins, 0, merged, configuredOrigins.length, devOrigins.length);
+        return merged;
     }
 }

@@ -4,10 +4,12 @@ import com.nchuy099.mini_instagram.comment.dto.CommentDTO;
 import com.nchuy099.mini_instagram.comment.dto.CreateCommentRequest;
 import com.nchuy099.mini_instagram.comment.entity.Comment;
 import com.nchuy099.mini_instagram.comment.repository.CommentRepository;
+import com.nchuy099.mini_instagram.notification.event.CommentCreatedEvent;
 import com.nchuy099.mini_instagram.post.entity.Post;
 import com.nchuy099.mini_instagram.post.repository.PostRepository;
 import com.nchuy099.mini_instagram.user.entity.User;
 import com.nchuy099.mini_instagram.user.repository.UserRepository;
+import org.springframework.context.ApplicationEventPublisher;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,6 +38,8 @@ class CommentServiceTest {
     private PostRepository postRepository;
     @Mock
     private UserRepository userRepository;
+    @Mock
+    private ApplicationEventPublisher applicationEventPublisher;
 
     @InjectMocks
     private CommentServiceImpl commentService;
@@ -54,21 +58,38 @@ class CommentServiceTest {
     void createComment_WhenValid_ShouldSucceed() {
         UUID postId = UUID.randomUUID();
         User currentUser = User.builder().id(UUID.randomUUID()).username("me").build();
+        User postOwner = User.builder()
+                .id(UUID.randomUUID())
+                .username("owner")
+                .email("owner@example.com")
+                .build();
         authenticateUser("me");
 
-        Post post = Post.builder().id(postId).allowComments(true).commentCount(0).build();
+        Post post = Post.builder().id(postId).allowComments(true).commentCount(0).user(postOwner).build();
         CreateCommentRequest request = new CreateCommentRequest();
         request.setContent("Nice post!");
+        UUID savedCommentId = UUID.randomUUID();
 
         when(userRepository.findByUsernameOrEmailOrPhoneNumber("me", "me", "me")).thenReturn(Optional.of(currentUser));
         when(postRepository.findById(postId)).thenReturn(Optional.of(post));
-        when(commentRepository.save(any(Comment.class))).thenAnswer(i -> i.getArgument(0));
+        when(commentRepository.save(any(Comment.class))).thenAnswer(i -> {
+            Comment saved = i.getArgument(0);
+            saved.setId(savedCommentId);
+            return saved;
+        });
 
         CommentDTO result = commentService.createComment(postId, request);
 
         assertThat(result.getContent()).isEqualTo("Nice post!");
         assertThat(post.getCommentCount()).isEqualTo(1);
         verify(commentRepository).save(any(Comment.class));
+        ArgumentCaptor<CommentCreatedEvent> eventCaptor = ArgumentCaptor.forClass(CommentCreatedEvent.class);
+        verify(applicationEventPublisher).publishEvent(eventCaptor.capture());
+        assertThat(eventCaptor.getValue().getActorId()).isEqualTo(currentUser.getId());
+        assertThat(eventCaptor.getValue().getRecipientId()).isEqualTo(postOwner.getId());
+        assertThat(eventCaptor.getValue().getRecipientPrincipal()).isEqualTo("owner@example.com");
+        assertThat(eventCaptor.getValue().getPostId()).isEqualTo(postId);
+        assertThat(eventCaptor.getValue().getCommentId()).isEqualTo(savedCommentId);
     }
 
     @Test

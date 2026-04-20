@@ -11,6 +11,7 @@ interface CommentItemProps {
   comment: Comment;
   onReply: (comment: Comment) => void;
   depth?: 0 | 1;
+  highlightCommentId?: string | null;
 }
 
 function renderCommentContent(content: string) {
@@ -45,7 +46,7 @@ function renderCommentContent(content: string) {
   return nodes;
 }
 
-function CommentItem({ comment, onReply, depth = 0 }: CommentItemProps) {
+function CommentItem({ comment, onReply, depth = 0, highlightCommentId = null }: CommentItemProps) {
   const [replies, setReplies] = useState<Comment[]>([]);
   const [showReplies, setShowReplies] = useState(false);
   const [isLoadingReplies, setIsLoadingReplies] = useState(false);
@@ -72,8 +73,37 @@ function CommentItem({ comment, onReply, depth = 0 }: CommentItemProps) {
     }
   };
 
+  useEffect(() => {
+    if (depth === 1 || !highlightCommentId || showReplies || comment.replyCount <= 0) {
+      return;
+    }
+
+    const preloadRepliesForHighlight = async () => {
+      try {
+        const data = await commentService.getReplies(comment.id);
+        const replyItems: Comment[] = data.content ?? [];
+        const hasTargetReply = replyItems.some((reply) => reply.id === highlightCommentId);
+        if (hasTargetReply) {
+          setReplies(replyItems);
+          setShowReplies(true);
+        }
+      } catch {
+        // Best-effort preload only.
+      }
+    };
+
+    void preloadRepliesForHighlight();
+  }, [comment.id, comment.replyCount, depth, highlightCommentId, showReplies]);
+
+  const isHighlighted = highlightCommentId != null && comment.id === highlightCommentId;
+
   return (
-    <div className={depth === 0 ? 'flex flex-col space-y-3 mb-4 last:mb-0' : 'flex flex-col space-y-3'}>
+    <div
+      id={`comment-${comment.id}`}
+      className={`${depth === 0 ? 'mb-4 last:mb-0' : ''} flex flex-col space-y-3 rounded-lg px-2 py-1 transition-colors ${
+        isHighlighted ? 'bg-amber-100/70 ring-1 ring-amber-300' : ''
+      }`}
+    >
       <div className="flex space-x-3 group">
         <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
           {comment.user.avatarUrl && <img src={comment.user.avatarUrl} alt="avatar" className="w-full h-full object-cover" />}
@@ -102,7 +132,13 @@ function CommentItem({ comment, onReply, depth = 0 }: CommentItemProps) {
       {depth === 0 && showReplies && replies.length > 0 && (
         <div className="ml-11 space-y-4 border-l-2 border-gray-100 pl-4">
           {replies.map(reply => (
-            <CommentItem key={reply.id} comment={reply} onReply={onReply} depth={1} />
+            <CommentItem
+              key={reply.id}
+              comment={reply}
+              onReply={onReply}
+              depth={1}
+              highlightCommentId={highlightCommentId}
+            />
           ))}
         </div>
       )}
@@ -112,9 +148,10 @@ function CommentItem({ comment, onReply, depth = 0 }: CommentItemProps) {
 
 interface CommentSectionProps {
   postId: string;
+  highlightCommentId?: string | null;
 }
 
-export default function CommentSection({ postId }: CommentSectionProps) {
+export default function CommentSection({ postId, highlightCommentId = null }: CommentSectionProps) {
   const { user } = useAuth();
   const [comments, setComments] = useState<Comment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -161,6 +198,19 @@ export default function CommentSection({ postId }: CommentSectionProps) {
     fetchComments();
   }, [fetchComments]);
 
+  useEffect(() => {
+    if (!highlightCommentId || comments.length === 0) {
+      return;
+    }
+
+    const target = document.getElementById(`comment-${highlightCommentId}`);
+    if (!target) {
+      return;
+    }
+
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [comments, highlightCommentId]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newComment.trim() || isSubmitting) return;
@@ -203,7 +253,12 @@ export default function CommentSection({ postId }: CommentSectionProps) {
           </div>
         ) : (
           comments.map(comment => (
-            <CommentItem key={comment.id} comment={comment} onReply={handleReply} />
+            <CommentItem
+              key={comment.id}
+              comment={comment}
+              onReply={handleReply}
+              highlightCommentId={highlightCommentId}
+            />
           ))
         )}
       </div>

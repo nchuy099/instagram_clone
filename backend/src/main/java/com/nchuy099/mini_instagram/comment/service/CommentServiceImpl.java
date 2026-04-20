@@ -5,12 +5,15 @@ import com.nchuy099.mini_instagram.comment.dto.CreateCommentRequest;
 import com.nchuy099.mini_instagram.comment.entity.Comment;
 import com.nchuy099.mini_instagram.comment.repository.CommentRepository;
 import com.nchuy099.mini_instagram.common.response.PagedResponse;
+import com.nchuy099.mini_instagram.notification.event.CommentCreatedEvent;
 import com.nchuy099.mini_instagram.post.entity.Post;
 import com.nchuy099.mini_instagram.post.repository.PostRepository;
 import com.nchuy099.mini_instagram.user.dto.UserDTO;
 import com.nchuy099.mini_instagram.user.entity.User;
 import com.nchuy099.mini_instagram.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
@@ -22,11 +25,13 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class CommentServiceImpl implements CommentService {
 
     private final CommentRepository commentRepository;
     private final PostRepository postRepository;
     private final UserRepository userRepository;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     @Override
     @Transactional
@@ -63,6 +68,26 @@ public class CommentServiceImpl implements CommentService {
         // Update post comment count
         post.setCommentCount(post.getCommentCount() + 1);
         postRepository.save(post);
+
+        User recipient = post.getUser();
+        if (recipient != null && recipient.getId() != null) {
+            log.info(
+                    "notification_event_publish type=POST_COMMENT actorId={} recipientId={} postId={} commentId={}",
+                    currentUser.getId(),
+                    recipient.getId(),
+                    post.getId(),
+                    savedComment.getId()
+            );
+            applicationEventPublisher.publishEvent(new CommentCreatedEvent(
+                    currentUser.getId(),
+                    currentUser.getUsername(),
+                    currentUser.getAvatarUrl(),
+                    recipient.getId(),
+                    resolvePrincipal(recipient),
+                    post.getId(),
+                    savedComment.getId()
+            ));
+        }
 
         return mapToDTO(savedComment);
     }
@@ -137,5 +162,9 @@ public class CommentServiceImpl implements CommentService {
         String credential = authentication.getName();
         return userRepository.findByUsernameOrEmailOrPhoneNumber(credential, credential, credential)
                 .orElseThrow(() -> new IllegalStateException("Current user not found"));
+    }
+
+    private String resolvePrincipal(User user) {
+        return user.getEmail() == null ? user.getUsername() : user.getEmail();
     }
 }
